@@ -82,7 +82,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice` and `Error`.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error` and `Map`.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -114,10 +114,26 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `error_new` | Go's `errors.New` | One allocation here against Go's, because the struct and its text share a block |
 | `error_join_two` | Go's `errors.Join` | burrow builds the message now and Go builds it when somebody prints, so this one is slower on purpose |
 | `error_is_tree` | Go's `errors.Is` | The depth first walk over what `Join` produces, rather than a chain |
+| `map_get_hit_int` | Go's `m[k]` | Two Swiss tables, so this is the comparison the whole file exists for |
+| `map_get_miss_int` | Go's `m[k]` | The answer a cache gets on the request that matters, and it has to prove absence |
+| `map_get2_hit_int` | Go's `v, ok := m[k]` | The gap against `map_get_hit_int` is what copying the value out costs |
+| `map_get_hit_str` | Go's `m[k]` | Eleven byte keys, so Go does one AES round and burrow does eleven of FNV-1a |
+| `map_get_miss_str` | Go's `m[k]` | The same hash cost with keys that differ in their first three bytes |
+| `map_set_update` | Go's `m[k] = v` | A key that is already there, which never grows the table, where counters live |
+| `map_set_grow` | Go's `append` of a map, `make` with no hint | Eleven doublings, which is where the two growth designs actually differ |
+| `map_set_prealloc` | Go's `make(map, n)` | The gap against `map_set_grow` is what the growth costs |
+| `map_set_prealloc_str` | Go's `make(map, n)` | The hash again, this time in construction rather than lookup |
+| `map_del_miss` | Go's `delete` | The probe and nothing else, which is the floor for the pair below |
+| `map_set_del_pair` | Go's `delete` then `m[k] = v` | Measuring a delete alone empties the table, and an LRU moves an entry this way anyway |
+| `map_iter` | Go's `range m` | A scan over the control bytes with a skip for every slot that is not full |
+| `map_churn` | Go's fill and `delete` loop | Fill a thousand, delete a thousand, forever, which is the tombstone reclamation showing up as a number |
+| `map_clear_refill` | Go's `clear` then refill | The other way to reuse a map, and the one that keeps the memory |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
 Two of the Go pairings are uneven and the table in `results/` says so where it matters. `str_from_cstr` against Go's `len` is comparing a `strlen` call against a field read, because a Go string carries its length and a `char *` does not. That gap is the cost of the boundary between C and burrow, it is paid once when a string enters the library, and it is not a fact about `Str`.
+
+The map string benchmarks are expected to lose and the size of the loss is the point of running them. Go's hash is AES backed where the chip has the instruction and burrow's is FNV-1a a byte at a time, so `map_get_hit_str` is the number that says how much a word at a time hash is worth. When that lands, these rows are how anybody checks it did what it claimed.
 
 Everything else arrives as the packages do.
 
