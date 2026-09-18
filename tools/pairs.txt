@@ -104,3 +104,12 @@ utf8_valid_mixed         Utf8ValidMixed
 utf8_encode_ascii        Utf8EncodeASCII
 utf8_encode_wide         Utf8EncodeWide
 utf8_rune_len            Utf8RuneLen
+atomic_add_u64           AtomicAddU64
+atomic_add_u32           AtomicAddU32
+atomic_load_u64          AtomicLoadU64
+atomic_store_u64         AtomicStoreU64
+atomic_cas_u64           AtomicCASU64
+note_cycle               NoteCycle
+note_pingpong            NotePingpong
+thread_start_join        ThreadStartJoin
+thread_yield             ThreadYield

@@ -32,6 +32,14 @@ WARNINGS := -Wall -Wextra -Werror -Wno-unused-parameter
 CFLAGS  ?= $(STD) $(OPT) $(WARNINGS) -fno-omit-frame-pointer $(INCLUDES)
 LDFLAGS ?=
 
+# burrow itself needs threads now, so anything linking it does too. -pthread is
+# a compile flag and a link flag at once, which is why it goes on both, and it
+# is kept out of CFLAGS because CFLAGS is overridable and this is not optional.
+# Windows has threads in the CRT with no flag to ask for them.
+ifneq ($(OS),Windows_NT)
+  THREADS := -pthread
+endif
+
 # Sanitisers, for checking that a benchmark is measuring what it says rather
 # than running off the end of a buffer. Set SAN and both sides get rebuilt with
 # it, which matters because MemorySanitizer reports anything it did not watch
@@ -67,7 +75,7 @@ $(BURROW_LIB): burrow
 
 $(BIN): $(HARNESS) $(BENCH_SRCS) $(BURROW_LIB)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $@.d $(HARNESS) $(BENCH_SRCS) $(BURROW_LIB) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(THREADS) $(DEPFLAGS) -MF $@.d $(HARNESS) $(BENCH_SRCS) $(BURROW_LIB) $(LDFLAGS) -o $@
 
 -include $(DEPS)
 
