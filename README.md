@@ -74,6 +74,8 @@ BENCH(arena_alloc_small) {
 
 `BENCH_LOOP` runs the body enough times to make the measurement mean something, which it works out by running it and looking. `bench_keep` stops the optimiser deleting work whose result nobody reads, which is the single most common way a C benchmark ends up measuring nothing at all.
 
+`bench_hide` is the other half of that. It hands back the pointer it was given from a translation unit the caller's optimiser cannot see into, and it is for work the compiler would otherwise do at compile time because it can trace the input back to a constant. Use it once, outside the loop, on whatever the loop's work hangs off. An interface call is the case that needs it most: give clang a vtable it can see and the indirect call becomes a direct one and then disappears into the loop body.
+
 Setup outside the loop is not timed. If you need setup inside the loop, stop the clock around it with `bench_pause(b)` and `bench_resume(b)`, exactly as you would in Go.
 
 ## The rules
@@ -92,7 +94,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map` and the hash under it.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, and interface dispatch.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -143,12 +145,36 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `map_iter` | Go's `range m` | A scan over the control bytes with a skip for every slot that is not full |
 | `map_churn` | Go's fill and `delete` loop | Fill a thousand, delete a thousand, forever, which is the tombstone reclamation showing up as a number |
 | `map_clear_refill` | Go's `clear` then refill | The other way to reuse a map, and the one that keeps the memory |
+| `iface_call` | `direct_call`, Go's interface call | A load and an indirect call, which is the claim the whole interface design makes |
+| `direct_call` | `iface_call` | The same work without the interface, so the gap is what dispatch costs |
+| `iface_call_two_types` | Go's | Two dynamic types at one call site, which is what real code looks like |
+| `iface_convert` | Go's `var v I = c` | Two moves on both sides whenever the compiler knows both types |
+| `iface_narrow` | Go's `var r io.Reader = rw` | A member address here against Go's `runtime.convI2I` and its cache |
+| `iface_assert_hit` | Go's `v.(*T)` | One load of the descriptor and one pointer comparison |
+| `iface_assert_miss` | Go's `v.(*T)` | The answer every arm of a type switch but one gets |
+| `iface_type` | nothing | Reading the dynamic type, which is the first step of a type switch |
+| `any_make` | Go's `var v any = p` | A descriptor and a pointer, no allocation on either side |
+| `any_box` | Go's `var v any = i` | The one that allocates, arena against Go's heap, so read the allocation columns |
+| `any_assert_hit` | Go's `v.(int)` | `iface_assert` with a descriptor in place of a vtable |
+| `any_assert_miss` | Go's `v.(int64)` | |
+| `any_equal_hit` | Go's `==` | What a `map[any]V` pays once the hash has found the slot |
+| `any_equal_type_miss` | Go's `==` | The same number as two types, answered from the descriptors without reading either value |
+| `io_copy_buffer_64k` | Go's `io.CopyBuffer` | Dispatch where it happens, two hundred and fifty six interface calls per iteration |
+| `io_read_full_4k` | Go's `io.ReadFull` | Eight reads into one buffer, which is the shape of every header parse |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
 Two of the Go pairings are uneven and the table in `results/` says so where it matters. `str_from_cstr` against Go's `len` is comparing a `strlen` call against a field read, because a Go string carries its length and a `char *` does not. That gap is the cost of the boundary between C and burrow, it is paid once when a string enters the library, and it is not a fact about `Str`.
 
 The hash rows are the one case so far where these benchmarks changed the library rather than reporting on it, and the story is worth keeping because it is how this is supposed to work. The map rows were expected to show the string lookups losing badly, because burrow hashed a byte at a time with FNV-1a and Go has an AES round per sixteen bytes. They did not show that. What they showed was the int key losing, which nobody predicted, and the reason is that FNV on an eight byte key is eight multiplies that each wait for the one before, with nothing else for the chip to do. Replacing it took thirteen to forty two percent off the map operations. The string keys were never the problem, and that is why `hash_int` exists and sits at the top of the table.
+
+The interface rows have two things worth knowing before anybody quotes a ratio off them.
+
+The first is that most of them measure one or two nanoseconds, and on that scale the harness is a large share of the number. The C side calls `bench_keep` once per iteration and that is an out of line call, while the Go side stores to a package level variable, which is a store. Both are doing their job, which is stopping the optimiser deleting the work, and neither is free. The gaps between the C rows are solid. The absolute C to Go ratio on a one nanosecond row is mostly a measurement of two different sinks.
+
+The second is `iface_call`, which needs `bench_hide` to mean anything at all. Hand clang a vtable it can trace back to a constant and it turns the indirect call into a direct one, inlines the body, and leaves a loop that adds one to a register, which measures at the cost of an empty loop and looks like a triumph. The Go side hides the same thing by reading the value out of a package level variable. This is the same failure as a missing `bench_keep` wearing a different hat, and `bench_hide` exists because of it.
+
+`iface_narrow` is the one uneven pair in the group and it is uneven in burrow's favour, so it is worth saying plainly what the difference is. Go converting an `io.ReadWriter` to an `io.Reader` calls `runtime.convI2I`, which finds the itab for the narrower interface in a cache, because that itab is a separate object. burrow keeps the narrower vtable inside the wider one, so the conversion is the address of a member. Different work, not a faster version of the same work.
 
 Everything else arrives as the packages do.
 

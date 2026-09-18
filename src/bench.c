@@ -69,6 +69,10 @@ void bench_keep_u64(uint64_t v) {
     bench_sink_u64 = v;
 }
 
+const void *bench_hide(const void *p) {
+    return p;
+}
+
 /* ------------------------------------------------------------- the timer */
 
 void bench_pause(Bench *b) {

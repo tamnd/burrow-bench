@@ -75,6 +75,21 @@ void bench_register(const char *name, BenchFunc fn);
 void bench_keep(const void *p);
 void bench_keep_u64(uint64_t v);
 
+/* Hands back exactly the pointer it was given, from a translation unit the
+ * caller's optimiser cannot see into.
+ *
+ * This is for the other half of the problem bench_keep solves. bench_keep stops
+ * the compiler deleting work whose result nobody reads. This stops it doing the
+ * work at compile time instead, which is what happens to a benchmark whose
+ * input it can trace back to a constant. An interface call is the worst case:
+ * give clang a vtable it can see and it will turn the indirect call into a
+ * direct one and then inline the body, and the benchmark reports the cost of an
+ * empty loop.
+ *
+ * Use it once, outside the timed loop, on whatever the loop's work hangs off.
+ * Inside the loop it is a function call and would be the measurement. */
+const void *bench_hide(const void *p);
+
 /* Stop and start the clock around setup that has to happen inside the loop.
  * Same idea as Go's b.StopTimer and b.StartTimer, and the same warning: if you
  * are pausing more often than you are measuring, the pause is the benchmark. */
