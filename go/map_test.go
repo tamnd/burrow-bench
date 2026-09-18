@@ -2,10 +2,11 @@
 //
 // Both sides are Swiss tables, Go's since 1.24, so the ratios here compare two
 // implementations of one idea. The two places they differ are the hash, where
-// Go has an AES backed one and burrow has FNV-1a a byte at a time, and the
-// growth, where Go splits one of a directory of tables and burrow doubles a
-// single one. The string benchmarks are the hash comparison and MapSetGrow is
-// the growth comparison.
+// Go's is AES backed and burrow's is a multiply and fold, and the growth, where
+// Go splits one of a directory of tables and burrow doubles a single one.
+// MapSetGrow is the growth comparison. The hash comparison is in hash_test.go,
+// which measures it on its own, since these benchmarks could not say how much
+// of their time was the hash.
 //
 // The construction benchmarks put a burrow arena that resets once per iteration
 // against Go's heap and its collector, so those time columns are two different
@@ -95,8 +96,8 @@ func BenchmarkMapGetOkHitInt(b *testing.B) {
 	}
 }
 
-// String keys, eleven bytes each, which is the AES hash against FNV-1a and is
-// the number this file exists to produce.
+// String keys, eleven bytes each, a length both sides read in two overlapping
+// loads, so what is left in the gap is the table and not the hash.
 func BenchmarkMapGetHitStr(b *testing.B) {
 	m := filledStrMap()
 	b.ResetTimer()

@@ -5,12 +5,12 @@
  * rather than a comparison of two data structures. That makes the ratios worth
  * reading and it makes the places they diverge worth explaining.
  *
- * The hash is the first divergence and it is the big one. Go's is AES backed
- * where the chip has the instruction, which is most machines this runs on.
- * burrow's is FNV-1a a byte at a time, which is fine for an eight byte int key
- * and is not fine for a string key, so the string lookups here are expected to
- * lose and the size of the loss is the argument for replacing the hash. That is
- * the number this file exists to produce.
+ * The hash is the first divergence. Go's is AES backed where the chip has the
+ * instruction, which is most machines this runs on, and burrow's is a multiply
+ * and fold. It was FNV-1a a byte at a time when this file was written, and
+ * these benchmarks are what got it replaced, but they could not say how much of
+ * their own time was the hash. That question has its own file now, in
+ * hash_bench.c, and the numbers here are the table rather than the hash.
  *
  * The second is growth. Go's table is a directory of smaller tables and grows
  * by splitting one of them. burrow's is a single table that doubles and
@@ -144,8 +144,8 @@ BENCH(map_get2_hit_int) {
 }
 
 /* String keys, which is what half the maps in a real program are keyed by.
- * Eleven bytes, so FNV-1a does eleven rounds of multiply and xor while Go does
- * one AES round, and this is the benchmark that says how much that is worth. */
+ * Eleven bytes, which both sides now read in two overlapping loads, so what is
+ * left in the gap is the table and not the hash. */
 BENCH(map_get_hit_str) {
     Arena ar;
     arena_init(&ar, NULL, 0);
