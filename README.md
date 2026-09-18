@@ -39,6 +39,16 @@ tools/run.sh -pin 5 -o results/server2-2026-09-18.txt
 
 Both sides get the same core, and Go also gets `GOMAXPROCS=1`, since a pinned Go process otherwise starts a thread per core and then fights itself for the one core it is allowed to use. Pick a core that is not core 0, because that is where interrupts land.
 
+To run part of the suite, and to get a number a busy machine cannot ruin:
+
+```sh
+tools/run.sh -pin 5 -run hash -stat min -count 9
+```
+
+`-run` takes a substring of the C benchmark names. The Go side gets the matching Go names out of `tools/pairs.txt` rather than the same string, because `hash_int` and `HashInt` are one benchmark spelled two ways and no single pattern finds both.
+
+`-stat min` prints the fastest of the runs instead of the median. The median is right on a machine that is doing nothing else, and none of the machines this project has are doing nothing else. Nothing another process does can make a benchmark run faster, so on a loaded box the minimum is the closest available thing to what a quiet machine would say, while the median tracks whatever else is running. The spread column is still printed next to it, because a minimum taken out of nine runs that were all interrupted is still not a measurement.
+
 This matters more than it sounds like it should. An unpinned run gets migrated between cores partway through, arrives with a cold cache and a cold branch predictor, and on a two socket machine can end up reading memory attached to the other socket. Three runs of one benchmark on a lightly loaded server came back 9.3, 15.1 and 22.8 nanoseconds unpinned, and within one percent of each other pinned. The header of every results file records whether the run was pinned, so a file that does not say so is not evidence about anything smaller than a factor of two.
 
 macOS has no equivalent. Thread affinity there is a hint and there is nothing that pins a process to a core, so `-pin` is Linux only and a Mac run says `pinned no` in its header.
