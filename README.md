@@ -82,7 +82,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error` and `Map`.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map` and the hash under it.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -114,11 +114,16 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `error_new` | Go's `errors.New` | One allocation here against Go's, because the struct and its text share a block |
 | `error_join_two` | Go's `errors.Join` | burrow builds the message now and Go builds it when somebody prints, so this one is slower on purpose |
 | `error_is_tree` | Go's `errors.Is` | The depth first walk over what `Join` produces, rather than a chain |
+| `hash_int` | Go's `maphash.Comparable` | Eight bytes, all per call cost, and the floor under every map operation |
+| `hash_float64` | Go's `maphash.Comparable` | The same eight bytes through the float rules, so the gap is what those cost |
+| `hash_str_short` | Go's `maphash.String` | Eleven bytes, a short name, which is one overlapping pair of loads on both sides |
+| `hash_str_long` | Go's `maphash.String` | Sixty four bytes, a path or a URL, where the per byte cost starts to show |
+| `hash_str_huge` | Go's `maphash.String` | A kilobyte, which is per byte cost and nothing else, and where AES should win outright |
 | `map_get_hit_int` | Go's `m[k]` | Two Swiss tables, so this is the comparison the whole file exists for |
 | `map_get_miss_int` | Go's `m[k]` | The answer a cache gets on the request that matters, and it has to prove absence |
 | `map_get2_hit_int` | Go's `v, ok := m[k]` | The gap against `map_get_hit_int` is what copying the value out costs |
-| `map_get_hit_str` | Go's `m[k]` | Eleven byte keys, so Go does one AES round and burrow does eleven of FNV-1a |
-| `map_get_miss_str` | Go's `m[k]` | The same hash cost with keys that differ in their first three bytes |
+| `map_get_hit_str` | Go's `m[k]` | Eleven byte keys, a length both sides read in two loads, so the gap is the table |
+| `map_get_miss_str` | Go's `m[k]` | The same with keys that differ in their first three bytes |
 | `map_set_update` | Go's `m[k] = v` | A key that is already there, which never grows the table, where counters live |
 | `map_set_grow` | Go's `append` of a map, `make` with no hint | Eleven doublings, which is where the two growth designs actually differ |
 | `map_set_prealloc` | Go's `make(map, n)` | The gap against `map_set_grow` is what the growth costs |
@@ -133,7 +138,7 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 
 Two of the Go pairings are uneven and the table in `results/` says so where it matters. `str_from_cstr` against Go's `len` is comparing a `strlen` call against a field read, because a Go string carries its length and a `char *` does not. That gap is the cost of the boundary between C and burrow, it is paid once when a string enters the library, and it is not a fact about `Str`.
 
-The map string benchmarks are expected to lose and the size of the loss is the point of running them. Go's hash is AES backed where the chip has the instruction and burrow's is FNV-1a a byte at a time, so `map_get_hit_str` is the number that says how much a word at a time hash is worth. When that lands, these rows are how anybody checks it did what it claimed.
+The hash rows are the one case so far where these benchmarks changed the library rather than reporting on it, and the story is worth keeping because it is how this is supposed to work. The map rows were expected to show the string lookups losing badly, because burrow hashed a byte at a time with FNV-1a and Go has an AES round per sixteen bytes. They did not show that. What they showed was the int key losing, which nobody predicted, and the reason is that FNV on an eight byte key is eight multiplies that each wait for the one before, with nothing else for the chip to do. Replacing it took thirteen to forty two percent off the map operations. The string keys were never the problem, and that is why `hash_int` exists and sits at the top of the table.
 
 Everything else arrives as the packages do.
 

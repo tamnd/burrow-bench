@@ -27,6 +27,11 @@ slice_index              SliceIndex
 slice_sub                SliceSub
 slice_copy               SliceCopy
 slice_from_str_medium    SliceBytesFromString
+hash_int                 HashInt
+hash_float64             HashFloat64
+hash_str_short           HashStrShort
+hash_str_long            HashStrLong
+hash_str_huge            HashStrHuge
 map_get_hit_int          MapGetHitInt
 map_get_miss_int         MapGetMissInt
 map_get2_hit_int         MapGetOkHitInt
