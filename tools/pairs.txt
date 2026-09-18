@@ -19,3 +19,11 @@ str_eq_different_lengths EqualDifferentLengths
 str_cmp_long             CompareLong
 str_clone_medium         CloneMedium
 str_at                   Index
+slice_append_grow        SliceAppendGrow
+slice_append_prealloc    SliceAppendPrealloc
+slice_append_bulk        SliceAppendBulk
+slice_make               SliceMake
+slice_index              SliceIndex
+slice_sub                SliceSub
+slice_copy               SliceCopy
+slice_from_str_medium    SliceBytesFromString
