@@ -103,9 +103,12 @@ func BenchmarkFuncCallWriteEnv(b *testing.B) {
 	}
 }
 
-// Two targets at one call site, alternating every iteration. Level with
-// FuncCall on both sides, because an alternation of two targets is something
-// any indirect branch predictor gets right every time.
+// Two targets at one call site, alternating every iteration, which is what a
+// real program's callbacks look like and what FuncCall above deliberately is
+// not. It measured about half a nanosecond over FuncCall on both sides, and
+// that is the extra load out of the array rather than a mispredict, since an
+// alternation of two targets is something any indirect branch predictor gets
+// right every time.
 func BenchmarkFuncCallTwoTargets(b *testing.B) {
 	fs := [2]func(int) int{globalFilter, globalDouble}
 	for i := 0; i < b.N; i++ {

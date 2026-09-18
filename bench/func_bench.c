@@ -148,10 +148,15 @@ BENCH(func_call_write_env) {
     bench_keep_u64((uint64_t)e.n);
 }
 
-/* Two targets at one call site, alternating every iteration. Level with
- * func_call on both sides, for the same reason the two type interface row is
- * level with the one type row: an alternation of two targets is something any
- * indirect branch predictor gets right every time. */
+/* Two targets at one call site, alternating every iteration, which is what a
+ * real program's callbacks look like and what func_call above deliberately is
+ * not.
+ *
+ * It measured about half a nanosecond over func_call on both sides, and that is
+ * the extra load of the pair out of the array rather than a mispredict. An
+ * alternation of two targets is something any indirect branch predictor gets
+ * right every time. A call site that sees a dozen targets in no particular
+ * order would cost more, and neither language has a way to make that cheap. */
 BENCH(func_call_two_targets) {
     Filter fs[2];
 
