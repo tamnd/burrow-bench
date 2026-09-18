@@ -1,0 +1,159 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.7-2-g42098ce
+bench      fa9a8e2
+pinned     cpu 4,5 with taskset
+statistic  min of 9 runs
+date       2026-09-18 17:56:58Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+arena_alloc                       13.48      10%        97.63      11%     0.14x
+arena_alloc_zeroed                18.57      21%        99.93      14%     0.19x
+arena_alloc_large                 17.09      15%    104310.00      72%     0.00x
+arena_append_grow                189.45      20%      5523.00      17%     0.03x
+str_from_cstr_short                7.18      14%         0.47      18%    15.34x
+str_from_cstr_medium               8.36      21%         0.43      33%    19.30x
+str_eq_short                       7.84      32%         0.42      59%    18.51x
+str_eq_long                       65.69      21%        83.35      17%     0.79x
+str_eq_different_lengths           3.75       6%         0.95      22%     3.96x
+str_cmp_long                      58.23      25%       113.20      16%     0.51x
+str_clone_medium                  26.14      12%       105.40      20%     0.25x
+str_at                           127.61      10%        57.27      24%     2.23x
+slice_append_grow               2438.61      33%      8691.00      13%     0.28x
+slice_append_prealloc           1292.27      18%      2879.00      20%     0.45x
+slice_append_bulk                879.59      15%      6876.00      30%     0.13x
+slice_make                       116.81      16%      2061.00      12%     0.06x
+slice_index                       82.38      25%        32.66      25%     2.52x
+slice_sub                          6.44      14%         1.50      10%     4.29x
+slice_copy                       109.19      19%       103.60      16%     1.05x
+slice_from_str_medium             40.13      14%        61.04      13%     0.66x
+hash_int                           6.89      14%         6.29      15%     1.10x
+hash_float64                       6.74      25%        12.66       7%     0.53x
+hash_str_short                     6.61      24%         7.95      22%     0.83x
+hash_str_long                     12.19      15%         9.37      28%     1.30x
+hash_str_huge                    135.56      13%       101.70      20%     1.33x
+map_get_hit_int                   27.43      12%        15.97      19%     1.72x
+map_get_miss_int                  16.61       7%        14.38      11%     1.15x
+map_get2_hit_int                  34.27      12%        15.24      21%     2.25x
+map_get_hit_str                   34.31      17%        20.74      13%     1.65x
+map_get_miss_str                  17.71      31%        18.38      20%     0.96x
+map_set_update                    31.88      14%        18.47      12%     1.73x
+map_set_grow                   81801.40      24%    101830.00      23%     0.80x
+map_set_prealloc               34735.72      19%     31089.00      11%     1.12x
+map_set_prealloc_str           35603.95      23%     43357.00      22%     0.82x
+map_del_miss                      16.66      16%        20.38      11%     0.82x
+map_set_del_pair                  69.62      11%        58.09      11%     1.20x
+map_iter                        8484.68      14%     15106.00      20%     0.56x
+map_churn                      73027.78      18%     87864.00       8%     0.83x
+map_clear_refill               31056.43      21%     24116.00       9%     1.29x
+error_is_sentinel                  5.60      16%         9.59      15%     0.58x
+error_is_sentinel_miss             6.28      32%        13.53      20%     0.46x
+error_is_chain                    18.42       9%        41.21      21%     0.45x
+error_is_chain_miss               21.39       7%        51.58      14%     0.41x
+error_as_chain                     4.87      24%        96.68      11%     0.05x
+error_message                      4.16      11%         2.43      12%     1.71x
+error_return_ok                    2.32      13%         0.88      39%     2.62x
+error_new                         30.29       7%        51.51       5%     0.59x
+error_sentinel_use                 1.86       4%         1.20      30%     1.56x
+error_join_two                   120.22       9%       118.70      15%     1.01x
+error_is_tree                     48.46       5%        51.54      25%     0.94x
+iface_call                         3.24      16%         2.88       5%     1.13x
+direct_call                        1.83       7%         1.66      39%     1.10x
+iface_call_two_types               4.13      14%         2.84      10%     1.45x
+iface_convert                      1.79       6%         1.17      16%     1.53x
+iface_narrow                       4.13      21%         2.55      20%     1.62x
+iface_assert_hit                   3.21       9%         0.91      30%     3.51x
+iface_assert_miss                  3.72       7%         0.92      18%     4.06x
+any_make                           1.81      10%         1.06       8%     1.70x
+any_box                           30.60      15%        22.54      16%     1.36x
+any_assert_hit                     4.26      11%         0.55      22%     7.77x
+any_assert_miss                    4.20      10%         0.56      33%     7.50x
+any_equal_hit                     13.93      17%         5.25      20%     2.65x
+any_equal_type_miss                3.81      13%         0.56      33%     6.80x
+io_copy_buffer_64k              1876.20       9%       867.10      32%     2.16x
+io_read_full_4k                  170.94      10%        42.63       8%     4.01x
+func_call                          3.21       2%         2.44      14%     1.31x
+func_call_direct                   1.83       8%         0.46      20%     3.97x
+func_call_env                      3.66       7%         1.92      18%     1.91x
+func_call_write_env                3.77      12%         2.84       5%     1.33x
+func_call_two_targets              3.73      10%         2.76       7%     1.35x
+func_call0                         2.40       3%         2.58       7%     0.93x
+func_make                          1.93      18%        37.41      24%     0.05x
+func_higher_order                131.33       6%       169.30      14%     0.78x
+num_add                            1.84       4%         0.48      27%     3.81x
+num_mul                            1.78      13%         0.62      21%     2.86x
+num_div                            8.49       6%         8.37       5%     1.01x
+num_mod                            8.41       5%         8.41       4%     1.00x
+num_shl                            1.89       7%         0.82      21%     2.29x
+num_shr                            1.82       6%         0.96      21%     1.90x
+num_from_float64                   2.37      17%         0.88      13%     2.71x
+num_hash_round                    74.51      18%        74.96       3%     0.99x
+num_sum                          122.03      31%       122.10      36%     1.00x
+utf8_decode_ascii                  4.67      11%         0.91      21%     5.12x
+utf8_decode_japanese               7.02      26%         4.90      23%     1.43x
+utf8_decode_slice                  7.18      22%         4.93      22%     1.45x
+utf8_range_mixed                  77.16      28%        83.12      11%     0.93x
+utf8_range_ascii                  12.14      28%         8.93      13%     1.36x
+utf8_rune_count_ascii             17.39      20%         8.76      19%     1.98x
+utf8_rune_count_japanese          64.50      20%        54.36      27%     1.19x
+utf8_rune_count_long            4263.12      21%      3680.00      25%     1.16x
+utf8_valid_ascii                   9.08      32%         7.13      21%     1.27x
+utf8_valid_japanese               39.15      10%        36.19      30%     1.08x
+utf8_valid_long                  152.38       8%       164.00      13%     0.93x
+utf8_valid_mixed                  91.23       7%        78.91      16%     1.16x
+utf8_encode_ascii                  4.57      14%         0.40      49%    11.45x
+utf8_encode_wide                   5.45      20%         4.78      29%     1.14x
+utf8_rune_len                      4.11      17%         0.48      13%     8.62x
+atomic_add_u64                     5.86       2%         5.87       9%     1.00x
+atomic_add_u32                     5.84       4%         5.95       9%     0.98x
+atomic_load_u64                    1.87      17%         0.46      34%     4.10x
+atomic_store_u64                   5.67       5%         5.64       7%     1.01x
+atomic_cas_u64                     5.77       2%         5.46       6%     1.06x
+note_cycle                       307.09       7%        15.93      19%    19.28x
+note_pingpong                  16531.88      51%       573.80      16%    28.81x
+thread_start_join             110715.37      16%       730.90       9%   151.48x
+thread_yield                     987.76       8%       140.60       7%     7.03x
+
+not paired with a Go benchmark
+num_add_generic                    1.85       8%
+utf8_range_ascii_raw              12.05      24%
+num_mod_raw                        8.41       3%
+heap_alloc_zeroed                 31.27      16%
+memcmp_long                       61.44      23%
+memcpy_same_size                 133.36      16%
+strlen_short                       1.84       7%
+heap_alloc                        21.25      12%
+strcmp_different_lengths          79.25      16%
+num_from_float64_raw               1.81       5%
+raw_index_int                     32.89      26%
+calloc_free                       25.02      13%
+iface_type                         3.24       8%
+malloc_free                       14.20      15%
+track_arena_alloc                 71.36       6%
+num_shl_raw                        2.28      11%
+num_div_raw                        8.57       7%
+arena_reset                       42.43      22%
+raw_index                         13.34      62%
+calloc_1k                        158.78      20%
+strcmp_short                       1.94      12%
+strlen_medium                      1.88      11%
+raw_append_prealloc              479.59      23%
+num_sum_raw                      131.14      16%
+realloc_grow                     501.71       7%
+track_heap_quarantine            151.75      18%
+track_heap_alloc                  85.40      14%
+utf8_rune_count_long_raw        1246.05      34%
+slice_append_call              19084.24       4%
+slice_index_call                 201.11      14%
+num_mul_raw                        1.92      15%
+thread_self                        4.90       4%
+num_add_raw                        1.82      11%
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
