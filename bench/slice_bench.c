@@ -19,6 +19,7 @@
 #include "burrow/core.h"
 #include "burrow/mem.h"
 #include "burrow/mem/arena.h"
+#include "burrow/slice.h"
 #include "burrow/type.h"
 
 #include <stdlib.h>
@@ -111,6 +112,32 @@ BENCH(slice_append_bulk) {
     arena_free(&ar);
 }
 
+/* The same loop again, calling slice_append rather than going through
+ * BURROW_APPEND.
+ *
+ * BURROW_APPEND expands to an inline fast path that knows the element size at
+ * the call site, so slice_append_prealloc no longer crosses a call boundary
+ * once per element and no longer copies through memcpy with a length nothing
+ * can see. This one still does both. The gap between the two is what the
+ * inlining buys, and keeping it here means the gap stays measured rather than
+ * remembered. */
+BENCH(slice_append_call) {
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+
+    BENCH_LOOP(b) {
+        Slice s = slice_make(a, TYPE_INT, 0, N);
+        for (Int i = 0; i < N; i++)
+            s = slice_append(a, s, &i, 1);
+        bench_keep(s.p);
+        arena_reset(&ar);
+    }
+
+    report_arena(b, &ar);
+    arena_free(&ar);
+}
+
 /* The hand written version of slice_append_prealloc, with no descriptor, no
  * function call and no capacity check. This is the floor. Anything append costs
  * above this is what the generality is charging. */
@@ -161,11 +188,10 @@ BENCH(calloc_1k) {
 
 /* ------------------------------------------------------------------- index */
 
-/* Sixty four bounds checked reads. slice_at is a real call into the library,
- * since nothing here is built with link time optimisation, and Go's compiler
- * inlines its equivalent and often proves the check away entirely. So this pair
- * is the honest measure of what the check costs burrow today rather than a
- * claim that it has to cost that. */
+/* Sixty four bounds checked reads through BURROW_AT, which inlines the check
+ * and the stride because it knows the element type at the call site. Go's
+ * compiler inlines its equivalent and can often prove the check away entirely,
+ * which burrow cannot, so a gap is expected here. */
 BENCH(slice_index) {
     Arena ar;
     arena_init(&ar, NULL, 0);
@@ -178,6 +204,27 @@ BENCH(slice_index) {
         uint64_t sum = 0;
         for (Int i = 0; i < CHUNK; i++)
             sum += (uint64_t)BURROW_AT(Int, s, i);
+        bench_keep_u64(sum);
+    }
+
+    arena_free(&ar);
+}
+
+/* The same sixty four reads through slice_at, which is a real call into the
+ * library taking the stride from the descriptor. The pair with slice_index is
+ * what the inline fast path is worth on the read side. */
+BENCH(slice_index_call) {
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    Slice s = slice_make(a, TYPE_INT, N, N);
+    for (Int i = 0; i < N; i++)
+        BURROW_AT(Int, s, i) = i;
+
+    BENCH_LOOP(b) {
+        uint64_t sum = 0;
+        for (Int i = 0; i < CHUNK; i++)
+            sum += (uint64_t)*(Int *)slice_at(s, i);
         bench_keep_u64(sum);
     }
 
@@ -276,10 +323,12 @@ void register_slice_benchmarks(void) {
     BENCH_RUN(slice_append_grow);
     BENCH_RUN(slice_append_prealloc);
     BENCH_RUN(slice_append_bulk);
+    BENCH_RUN(slice_append_call);
     BENCH_RUN(raw_append_prealloc);
     BENCH_RUN(slice_make);
     BENCH_RUN(calloc_1k);
     BENCH_RUN(slice_index);
+    BENCH_RUN(slice_index_call);
     BENCH_RUN(raw_index_int);
     BENCH_RUN(slice_sub);
     BENCH_RUN(slice_copy);
