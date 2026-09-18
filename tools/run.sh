@@ -36,6 +36,23 @@ COUNT=${COUNT:-5}
 #
 # Pick a core that is not core 0, because that is where interrupts land.
 PIN=${PIN:-}
+
+# A substring of the C benchmark names, empty for all of them. The Go side gets
+# the matching Go names out of pairs.txt rather than the same string, since
+# hash_int and HashInt are the same benchmark spelled two ways and no single
+# pattern matches both.
+RUN=${RUN:-}
+
+# Which number out of the repetitions ends up in the table.
+#
+# median is the default and is right on a machine that is doing nothing else.
+# min is for the machines this project actually has, which are shared and busy.
+# Nothing another process does can make a benchmark run faster, so on a loaded
+# box the minimum is the closest thing to the number a quiet machine would give,
+# and the median moves around with whatever else is running. It is also why the
+# spread column is still printed next to it: a min with a 200 percent spread is
+# a number that was measured once and interrupted six times.
+STAT=${STAT:-median}
 out=""
 
 while [ $# -gt 0 ]; do
@@ -56,8 +73,23 @@ while [ $# -gt 0 ]; do
 		PIN=$2
 		shift 2
 		;;
+	-run)
+		RUN=$2
+		shift 2
+		;;
+	-stat)
+		STAT=$2
+		case "$STAT" in
+		median | min) ;;
+		*)
+			echo "run.sh: -stat takes median or min, not $STAT" >&2
+			exit 2
+			;;
+		esac
+		shift 2
+		;;
 	*)
-		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs] [-pin cpu]" >&2
+		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs] [-pin cpu] [-run substring] [-stat median|min]" >&2
 		exit 2
 		;;
 	esac
@@ -115,6 +147,10 @@ header() {
 	echo "burrow     $burrow_id"
 	echo "bench      $bench_id"
 	echo "pinned     $pin_note"
+	echo "statistic  $STAT of $COUNT runs"
+	if [ -n "$RUN" ]; then
+		echo "filter     $RUN"
+	fi
 	echo "date       $(date -u '+%Y-%m-%d %H:%M:%SZ')"
 	if command -v go >/dev/null 2>&1; then
 		echo "go         $(go version | cut -d' ' -f3)"
@@ -136,8 +172,27 @@ go_out=$BUILD/go.txt
 # Go gets GOMAXPROCS=1 alongside the pin, because a pinned Go process still
 # starts a thread per core and then fights itself for the one core it is allowed
 # to use.
+c_filter=""
+if [ -n "$RUN" ]; then
+	c_filter="-run $RUN"
+fi
+
 # shellcheck disable=SC2086
-$pin_cmd "$BUILD/bench" -time "$TIME" -count "$COUNT" -tsv >"$c_out"
+$pin_cmd "$BUILD/bench" -time "$TIME" -count "$COUNT" $c_filter -tsv >"$c_out"
+
+# The Go pattern comes out of pairs.txt, because the two sides spell their names
+# differently and translating one into the other is exactly what that file is.
+# A filter that matches no pair still has to be a pattern Go accepts, and one
+# that matches nothing is the honest answer to a filter that matched nothing.
+go_filter="."
+if [ -n "$RUN" ]; then
+	names=$(awk -v r="$RUN" 'index($1, r) { printf "%s%s", (n++ ? "|" : ""), $2 }' tools/pairs.txt)
+	if [ -n "$names" ]; then
+		go_filter="^Benchmark($names)\$"
+	else
+		go_filter='^$'
+	fi
+fi
 
 if command -v go >/dev/null 2>&1; then
 	go_env=""
@@ -145,7 +200,7 @@ if command -v go >/dev/null 2>&1; then
 		go_env="GOMAXPROCS=1"
 	fi
 	# shellcheck disable=SC2086
-	(cd go && env $go_env $pin_cmd go test -run '^$' -bench . -benchmem -benchtime "${TIME}s" -count "$COUNT" ./...) >"$go_out"
+	(cd go && env $go_env $pin_cmd go test -run '^$' -bench "$go_filter" -benchmem -benchtime "${TIME}s" -count "$COUNT" ./...) >"$go_out"
 else
 	: >"$go_out"
 fi
@@ -153,7 +208,7 @@ fi
 # ---------------------------------------------------------------- the table
 
 table() {
-	awk -v c="$c_out" -v g="$go_out" -v p=tools/pairs.txt '
+	awk -v c="$c_out" -v g="$go_out" -v p=tools/pairs.txt -v stat="$STAT" '
 	# The median of a set of samples held as vals[key, 1..n]. Median and not
 	# mean, for the same reason the harness uses one: a single hiccup in one run
 	# out of five moves a mean and does not move a median.
@@ -166,12 +221,13 @@ table() {
 	}
 	BEGIN {
 		# The C side, tab separated, with a header line to skip. The harness has
-		# already taken the median over its own repetitions, and column nine is
-		# how far apart the fastest and slowest of them were.
+		# already reduced its own repetitions: column three is their median,
+		# column seven the fastest of them, and column nine how far apart the
+		# fastest and the slowest were.
 		while ((getline line < c) > 0) {
 			n = split(line, f, "\t")
 			if (n < 3 || f[1] == "name") continue
-			cns[f[1]] = f[3]
+			cns[f[1]] = (stat == "min" && n >= 7) ? f[7] : f[3]
 			cspread[f[1]] = (n >= 9) ? f[9] : -1
 		}
 		# The Go side, whatever go test prints. The name carries a -N suffix for
@@ -204,7 +260,7 @@ table() {
 			if (!(cname in cns)) continue
 			cs = cspread[cname] >= 0 ? sprintf("%.0f%%", cspread[cname]) : "-"
 			if (gname in gcount && gcount[gname] > 0) {
-				gv = median(gvals, gname, gcount[gname])
+				gv = (stat == "min") ? glo[gname] : median(gvals, gname, gcount[gname])
 				gs = glo[gname] > 0 ? sprintf("%.0f%%", (ghi[gname]-glo[gname])/glo[gname]*100) : "-"
 				if (gv > 0)
 					printf "%-26s %12.2f %8s %12.2f %8s %8.2fx\n", cname, cns[cname], cs, gv, gs, cns[cname]/gv
@@ -229,8 +285,16 @@ table() {
 		}
 
 		print ""
-		print "A spread above about ten percent means the machine was busy and the"
-		print "ratio next to it is not a measurement. Run it again somewhere quiet."
+		if (stat == "min") {
+			print "Minimum of the runs, not the median, so these survive a busy machine"
+			print "better than the spread column next to them suggests. A spread in the"
+			print "hundreds still means most of the runs were interrupted, and a minimum"
+			print "taken out of runs that were all interrupted is not a measurement."
+		} else {
+			print "A spread above about ten percent means the machine was busy and the"
+			print "ratio next to it is not a measurement. Run it again somewhere quiet,"
+			print "or use -stat min, which is what the shared boxes need."
+		}
 	}'
 }
 
