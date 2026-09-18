@@ -161,6 +161,14 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `any_equal_type_miss` | Go's `==` | The same number as two types, answered from the descriptors without reading either value |
 | `io_copy_buffer_64k` | Go's `io.CopyBuffer` | Dispatch where it happens, two hundred and fifty six interface calls per iteration |
 | `io_read_full_4k` | Go's `io.ReadFull` | Eight reads into one buffer, which is the shape of every header parse |
+| `func_call` | `func_call_direct`, Go's closure call | A load and an indirect call, which is the claim the function value design makes |
+| `func_call_direct` | `func_call` | The same work with the function named at the call site, so the gap is what the value costs |
+| `func_call_env` | Go's closure over a variable | A target that reads its environment, which is a closure reading a capture |
+| `func_call_write_env` | Go's closure assigning to a capture | Capture by reference, where the store cannot be hoisted out of either loop |
+| `func_call_two_targets` | Go's | Two targets at one call site, which is what real code looks like |
+| `func_call0` | Go's `func()` | The no argument shape, which is what `defer`, `go` and `sync.Once.Do` all take |
+| `func_make` | Go's closure literal | Two stores here against a heap allocation in Go, so read the allocation columns |
+| `func_higher_order` | Go's | Sixty four calls through a value passed into a loop, which is where people actually use one |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 

@@ -72,3 +72,11 @@ any_equal_hit            AnyEqualHit
 any_equal_type_miss      AnyEqualTypeMiss
 io_copy_buffer_64k       CopyBuffer64K
 io_read_full_4k          ReadFull4K
+func_call                FuncCall
+func_call_direct         FuncCallDirect
+func_call_env            FuncCallEnv
+func_call_write_env      FuncCallWriteEnv
+func_call_two_targets    FuncCallTwoTargets
+func_call0               FuncCall0
+func_make                FuncMake
+func_higher_order        FuncHigherOrder
