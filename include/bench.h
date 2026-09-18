@@ -91,8 +91,16 @@ void bench_report_allocs(Bench *b, uint64_t bytes, uint64_t allocs);
  *   -run <substring>   only benchmarks whose name contains this
  *   -time <seconds>    how long each one should take, default 1
  *   -n <count>         fix the iteration count instead of working it out
+ *   -count <runs>      repeat each one this many times and report the spread
  *   -tsv               machine readable output, one row per benchmark
  *   -list              print the names and exit
+ *
+ * Use -count. A single run gives one number and says nothing about how much to
+ * trust it, and on a machine that is doing anything else at all the answer is
+ * usually not much. Three runs of the same benchmark on a lightly loaded server
+ * came back 9.3, 15.1 and 22.8 nanoseconds, which is not a measurement, it is
+ * three measurements of the scheduler. With -count the spread is printed next
+ * to the number and that stops happening quietly.
  */
 int bench_main(int argc, char **argv);
 
