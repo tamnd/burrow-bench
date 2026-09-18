@@ -14,6 +14,7 @@
 
 void register_error_benchmarks(void);
 void register_hash_benchmarks(void);
+void register_iface_benchmarks(void);
 void register_map_benchmarks(void);
 void register_mem_benchmarks(void);
 void register_slice_benchmarks(void);
@@ -22,6 +23,7 @@ void register_str_benchmarks(void);
 int main(int argc, char **argv) {
     register_error_benchmarks();
     register_hash_benchmarks();
+    register_iface_benchmarks();
     register_map_benchmarks();
     register_mem_benchmarks();
     register_slice_benchmarks();
