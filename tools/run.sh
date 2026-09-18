@@ -299,6 +299,14 @@ table() {
 }
 
 if [ -n "$out" ]; then
+	# A bare name means results/, which is where the file was going to end up
+	# anyway. Without this, -o server3.txt writes to the repository root and
+	# says "wrote server3.txt", and you find out days later that the run you
+	# were waiting on is not where you went looking for it.
+	case "$out" in
+	*/*) ;;
+	*) out="results/$out" ;;
+	esac
 	mkdir -p "$(dirname "$out")"
 	{
 		header
