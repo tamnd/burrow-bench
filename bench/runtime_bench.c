@@ -29,9 +29,11 @@
 #include "bench.h"
 
 #include "burrow/context.h"
+#include "burrow/sched.h"
 #include "burrow/stack.h"
 
 #include <stdint.h>
+#include <string.h>
 
 /* ------------------------------------------------------------------ context
  *
@@ -196,6 +198,161 @@ BENCH(stack_page_size) {
     }
 }
 
+/* ------------------------------------------------------------- the run queues
+ *
+ * The three operations the scheduler does on every single goroutine, so the
+ * numbers here are a floor under every number the scheduler will ever print.
+ * A put and a get together are what it costs to park a goroutine and pick it up
+ * again on the same P with nothing else going on, and that is the path almost
+ * every goroutine in almost every program takes.
+ *
+ * No Go pair, for the reason the top of this file gives about stacks. Go has no
+ * way to reach its own run queues and inventing something that looks like one
+ * would be measuring the thing built on top rather than the thing itself.
+ *
+ * One P and one thread throughout, which is the case worth having a number for.
+ * The ring is lock free for the owner by design, so an uncontended put is meant
+ * to be a load and a store, and a row that stops looking like a load and a
+ * store is the row that says somebody added an atomic read modify write to the
+ * hot path. What contention costs is a different question and it belongs in a
+ * benchmark with threads in it, which goes in when the scheduler does. */
+
+static burrow__P rq_p;
+static burrow__P rq_victim;
+static burrow__G rq_gs[BURROW_RUNQ_SIZE + 1];
+
+static void rq_reset(burrow__P *p) {
+    memset(p, 0, sizeof(*p));
+    p->status = BURROW_PRUNNING;
+}
+
+/* A put and a get back to back on an empty queue, which is one goroutine
+ * through the ring and the pair the scheduler runs most often. */
+BENCH(runq_put_get) {
+    bench_pause(b);
+    rq_reset(&rq_p);
+    burrow__G *g = &rq_gs[0];
+    bench_resume(b);
+
+    BENCH_LOOP(b) {
+        burrow__G *overflow = NULL;
+        (void)burrow__runq_put(&rq_p, g, false, &overflow);
+        bench_keep(burrow__runq_get(&rq_p));
+    }
+}
+
+/* The same pair through the runnext slot, which is a compare and swap in each
+ * direction rather than a store and a compare and swap. This is the path a
+ * channel handoff takes, so the difference between this row and the one above
+ * is what the slot costs to have. */
+BENCH(runq_put_get_next) {
+    bench_pause(b);
+    rq_reset(&rq_p);
+    burrow__G *g = &rq_gs[0];
+    bench_resume(b);
+
+    BENCH_LOOP(b) {
+        burrow__G *overflow = NULL;
+        (void)burrow__runq_put(&rq_p, g, true, &overflow);
+        bench_keep(burrow__runq_get(&rq_p));
+    }
+}
+
+/* Filling the ring and emptying it again, 256 goroutines at a time, so the
+ * number is dominated by the loads and stores rather than by the loop around
+ * them. Divide by 512 for the cost of moving one goroutine through a queue that
+ * is not empty, which is the case the row above cannot show because an empty
+ * ring keeps the same cache line hot forever. */
+BENCH(runq_fill_drain) {
+    bench_pause(b);
+    rq_reset(&rq_p);
+    bench_resume(b);
+
+    BENCH_LOOP(b) {
+        for (int i = 0; i < BURROW_RUNQ_SIZE; i++) {
+            burrow__G *overflow = NULL;
+            (void)burrow__runq_put(&rq_p, &rq_gs[i], false, &overflow);
+        }
+        for (int i = 0; i < BURROW_RUNQ_SIZE; i++)
+            bench_keep(burrow__runq_get(&rq_p));
+    }
+}
+
+/* One steal of half a full ring, which is 128 goroutines moved and one handed
+ * back to run. Refilling the victim is the expensive part and is paused out, so
+ * what is left is the grab: two acquire loads, 128 relaxed loads and stores, and
+ * one compare and swap.
+ *
+ * This is the row that says whether stealing is worth doing in a batch. Divide
+ * by 128 and compare against the put and get row: if a stolen goroutine is not
+ * a good deal cheaper to move than a locally queued one, the batch is not
+ * earning its complexity. */
+BENCH(runq_steal_half) {
+    bench_pause(b);
+    rq_reset(&rq_p);
+    rq_reset(&rq_victim);
+    bench_resume(b);
+
+    BENCH_LOOP(b) {
+        bench_pause(b);
+        rq_reset(&rq_p);
+        rq_reset(&rq_victim);
+        for (int i = 0; i < BURROW_RUNQ_SIZE; i++) {
+            burrow__G *overflow = NULL;
+            (void)burrow__runq_put(&rq_victim, &rq_gs[i], false, &overflow);
+        }
+        bench_resume(b);
+
+        bench_keep(burrow__runq_steal(&rq_p, &rq_victim, false));
+    }
+}
+
+/* The global queue, which is a linked list under a lock everywhere it is used
+ * for real. The lock is not here because it is the scheduler's and not the
+ * queue's, so this is the list on its own: two pointer writes to push and two
+ * to pop.
+ *
+ * It is on the overflow path rather than the hot one, so this row exists to
+ * confirm it stays out of the way rather than to be made faster. */
+BENCH(gqueue_push_pop) {
+    burrow__GQueue q;
+    memset(&q, 0, sizeof(q));
+
+    BENCH_LOOP(b) {
+        burrow__gqueue_push(&q, &rq_gs[0]);
+        bench_keep(burrow__gqueue_pop(&q));
+    }
+}
+
+/* Moving half a ring to the global queue in one go, which is what a put onto a
+ * full local queue turns into. 129 goroutines land on the batch and the ring is
+ * refilled between iterations, which is paused out.
+ *
+ * Go moves half rather than one because the global queue has a lock on it and
+ * the point is to touch that lock as rarely as possible. Dividing this by 129
+ * and comparing against the put and get row is how to see whether that trade
+ * still pays. */
+BENCH(runq_put_slow) {
+    bench_pause(b);
+    rq_reset(&rq_p);
+    bench_resume(b);
+
+    BENCH_LOOP(b) {
+        bench_pause(b);
+        rq_reset(&rq_p);
+        for (int i = 0; i < BURROW_RUNQ_SIZE; i++) {
+            burrow__G *overflow = NULL;
+            (void)burrow__runq_put(&rq_p, &rq_gs[i], false, &overflow);
+        }
+        burrow__GQueue batch;
+        memset(&batch, 0, sizeof(batch));
+        bench_resume(b);
+
+        (void)burrow__runq_put_slow(&rq_p, &rq_gs[BURROW_RUNQ_SIZE], &batch);
+        bench_keep(batch.head);
+    }
+}
+
 void register_runtime_benchmarks(void);
 
 void register_runtime_benchmarks(void) {
@@ -205,4 +362,10 @@ void register_runtime_benchmarks(void) {
     BENCH_RUN(stack_alloc_free_large);
     BENCH_RUN(stack_set_current);
     BENCH_RUN(stack_page_size);
+    BENCH_RUN(runq_put_get);
+    BENCH_RUN(runq_put_get_next);
+    BENCH_RUN(runq_fill_drain);
+    BENCH_RUN(runq_steal_half);
+    BENCH_RUN(runq_put_slow);
+    BENCH_RUN(gqueue_push_pop);
 }
