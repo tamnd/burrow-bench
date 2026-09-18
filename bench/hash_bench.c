@@ -71,13 +71,26 @@ static void build_keys(void) {
         short_keys[i] = (Str){(const Byte *)short_bytes[i], 11};
 
         /* A common prefix and a varying tail, which is what a hash gets from
-         * paths and from keys built out of a namespace. */
-        snprintf(long_bytes[i], sizeof long_bytes[i],
-                 "/some/reasonably/long/path/that/a/real/program/would/use/%05d", i);
+         * paths and from keys built out of a namespace.
+         *
+         * The length is checked rather than assumed. The first version of this
+         * wrote a 62 byte path and then told Str it was 64 bytes long, so the C
+         * side hashed two bytes the Go side never saw. It is checked on the Go
+         * side too, which is what caught it. */
+        if (snprintf(long_bytes[i], sizeof long_bytes[i],
+                     "/some/reasonably/longer/path/that/a/real/program/would/use/%05d",
+                     i) != LONG_LEN) {
+            fprintf(stderr, "hash_bench: long key is not the length the Go side uses\n");
+            exit(1);
+        }
         long_keys[i] = (Str){(const Byte *)long_bytes[i], LONG_LEN};
     }
 
     huge_bytes = (char *)malloc(HUGE_LEN);
+    if (huge_bytes == NULL) {
+        fprintf(stderr, "hash_bench: out of memory building the kilobyte key\n");
+        exit(1);
+    }
     for (j = 0; j < HUGE_LEN; j++)
         huge_bytes[j] = (char)('a' + (j % 26));
     huge_key = (Str){(const Byte *)huge_bytes, HUGE_LEN};
