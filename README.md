@@ -94,7 +94,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, and interface dispatch.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, and the arithmetic that Go defines and C leaves undefined.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -169,6 +169,16 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `func_call0` | Go's `func()` | The no argument shape, which is what `defer`, `go` and `sync.Once.Do` all take |
 | `func_make` | Go's closure literal | Two stores here against a heap allocation in Go, so read the allocation columns |
 | `func_higher_order` | Go's | Sixty four calls through a value passed into a loop, which is where people actually use one |
+| `num_add` | `num_add_raw`, Go's `+` | A wrapping add against the plain operator, which should be the same instruction |
+| `num_mul` | `num_mul_raw`, Go's `*` | The other operation that overflows on almost every hash input |
+| `num_add_generic` | `num_add` | The `_Generic` macro, to show the selection happens at compile time and nowhere else |
+| `num_div` | `num_div_raw`, Go's `/` | Two compares in front of a divide that already costs twenty to forty cycles |
+| `num_mod` | `num_mod_raw`, Go's `%` | The same pair of checks on the remainder |
+| `num_shl` | `num_shl_raw`, Go's `<<` | A count that goes past the width of the type, which is the case the header exists for |
+| `num_shr` | Go's `>>` | The arithmetic shift, where past the width means a sign extension rather than zero |
+| `num_from_float64` | `num_from_float64_raw`, Go's `int(f)` | A NaN check, two bound compares and a select around one convert instruction |
+| `num_hash_round` | Go's | Sixty four wrapping multiplies in a chain, which is where these functions actually get used |
+| `num_sum` | `num_sum_raw`, Go's `range` | An accumulator a long enough input overflows, in a loop both compilers want to unroll |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -191,6 +201,14 @@ The function value rows have the same harness floor under them and one finding o
 `func_make` is the uneven pair and it is uneven in burrow's favour, so here is the difference. A Go closure that captures a variable and outlives the frame it was made in goes on the heap, which the row shows as 16 bytes and one allocation per operation. A function value here is two words built next to an environment struct the caller already had, so it allocates nothing. That is the whole trade of this design visible in one row: you write the environment struct out by hand, and in exchange building a value is free. The rows above it are where you find out that calling one is free too.
 
 The Go side of these needed the same treatment `bench_hide` gives the C side, and the first version of the file did not have it. A closure written inside a benchmark is one Go inlines straight through, so the environment row reported 0.93 nanoseconds against a real call's 2.5, and the higher order row was three times quicker per call than the row it is meant to be comparable with. Every closure in `go/func_test.go` is now built by a function that captures its argument and read out of a package level variable, which is the Go spelling of the same trick.
+
+The numeric rows are the cheapest thing in this repository to measure wrongly, and the reason is in the first paragraph of the interface section above. Half of them are one or two nanoseconds, which is the same scale as the harness, so the column to read is not the Go one. It is `num_add` against `num_add_raw`, both of which carry the same `bench_keep` call, and which came out at 1.89 and 1.87 nanoseconds on a pinned core. The multiply pair is 1.85 against 1.87, the shift pair is 1.89 against 1.80, and `num_add_generic` is 1.80, which is `_Generic` selecting a function name at compile time and costing nothing at run time. Those pairs are the claim `burrow/num.h` makes, which is that Go's overflow and shift rules are free in C once they are written out, and they hold.
+
+The divide pair is the one where a cost would show if there were one, since `int_div` checks for a zero divisor and for the `MinInt / -1` case that faults on x86 before it divides. It measured 8.76 against the bare operator's 8.55 and against Go's 8.67. Two compares in front of a forty cycle instruction do not show up, and Go's compiler emits its own check in the same place for the same reason.
+
+`num_hash_round` and `num_sum` are the rows worth quoting, because they call sixty four and two hundred and fifty six times per sink, so the harness floor is divided rather than added. The hash round came out at 75.7 nanoseconds against Go's 81.9, and the sum at 139.7 against 136.6. Level, which is the answer these should give: the arithmetic is identical on both sides and neither compiler is being stopped from unrolling anything.
+
+What none of these rows measure is the case the header exists for, which is a shift count of 70 or a value of 1e300 arriving in a conversion. Those are correctness, they are tested in burrow rather than here, and the C row that looks like a fair comparison for them is undefined behaviour with a plausible number attached. `num_shl_raw` is that row: on x86 it answers with the low six bits of the count, which is a different number, not a faster one.
 
 Everything else arrives as the packages do.
 
