@@ -191,17 +191,45 @@ static int64_t pick_n(const Entry *e, int64_t target_ns) {
     return n;
 }
 
+/* -------------------------------------------------------- repeating a run */
+
+/* The most repetitions that can be asked for. Past this the interesting number
+ * is not the spread, it is why the machine is so noisy that more than this many
+ * runs were needed. */
+#define COUNT_MAX 64
+
+static int compare_double(const void *x, const void *y) {
+    double a = *(const double *)x;
+    double b = *(const double *)y;
+    if (a < b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+
+/* The median and not the mean, because a single scheduler hiccup in one run out
+ * of five moves a mean and does not move a median. The mean of a set with one
+ * enormous outlier is a number describing the outlier. */
+static double median_of(double *v, int n) {
+    qsort(v, (size_t)n, sizeof v[0], compare_double);
+    if (n % 2 == 1)
+        return v[n / 2];
+    return (v[n / 2 - 1] + v[n / 2]) / 2.0;
+}
+
 /* -------------------------------------------------------------------- main */
 
 static void usage(void) {
-    fprintf(stderr, "usage: bench [-run substring] [-time seconds] [-n count] [-tsv] "
-                    "[-list]\n");
+    fprintf(stderr, "usage: bench [-run substring] [-time seconds] [-n count] "
+                    "[-count runs] [-tsv] [-list]\n");
 }
 
 int bench_main(int argc, char **argv) {
     const char *filter = NULL;
     double seconds = 1.0;
     int64_t fixed_n = 0;
+    int count = 1;
     bool tsv = false;
     bool list = false;
 
@@ -213,6 +241,8 @@ int bench_main(int argc, char **argv) {
             seconds = atof(argv[++i]);
         } else if (strcmp(a, "-n") == 0 && i + 1 < argc) {
             fixed_n = strtoll(argv[++i], NULL, 10);
+        } else if (strcmp(a, "-count") == 0 && i + 1 < argc) {
+            count = (int)strtol(argv[++i], NULL, 10);
         } else if (strcmp(a, "-tsv") == 0) {
             tsv = true;
         } else if (strcmp(a, "-list") == 0) {
@@ -222,6 +252,11 @@ int bench_main(int argc, char **argv) {
             return 2;
         }
     }
+
+    if (count < 1)
+        count = 1;
+    if (count > COUNT_MAX)
+        count = COUNT_MAX;
 
     if (list) {
         for (int i = 0; i < nentries; i++)
@@ -233,8 +268,11 @@ int bench_main(int argc, char **argv) {
     if (target_ns < 1000000)
         target_ns = 1000000;
 
+    /* The third column stays ns_per_op so that anything already reading this
+     * keeps working. The repetition columns are appended rather than inserted. */
     if (tsv)
-        printf("name\titers\tns_per_op\tbytes_per_op\tallocs_per_op\n");
+        printf("name\titers\tns_per_op\tbytes_per_op\tallocs_per_op\truns\tmin_ns\t"
+               "max_ns\tspread_pct\n");
 
     int ran = 0;
     for (int i = 0; i < nentries; i++) {
@@ -243,20 +281,46 @@ int bench_main(int argc, char **argv) {
             continue;
         ran++;
 
+        /* Worked out once and reused for every repetition, so the repetitions
+         * are measuring the same amount of work and are comparable. */
         int64_t n = fixed_n > 0 ? fixed_n : pick_n(e, target_ns);
-        Bench b = run_measured(e, n, NULL);
 
-        double ns_per_op = n > 0 ? (double)b.ns / (double)n : 0.0;
-        double bytes_per_op = n > 0 ? (double)b.bytes / (double)n : 0.0;
-        double allocs_per_op = n > 0 ? (double)b.allocs / (double)n : 0.0;
+        double samples[COUNT_MAX];
+        Bench last;
+        memset(&last, 0, sizeof last);
+
+        for (int r = 0; r < count; r++) {
+            last = run_measured(e, n, NULL);
+            samples[r] = n > 0 ? (double)last.ns / (double)n : 0.0;
+        }
+
+        double bytes_per_op = n > 0 ? (double)last.bytes / (double)n : 0.0;
+        double allocs_per_op = n > 0 ? (double)last.allocs / (double)n : 0.0;
+
+        double lo = samples[0];
+        double hi = samples[0];
+        for (int r = 1; r < count; r++) {
+            if (samples[r] < lo)
+                lo = samples[r];
+            if (samples[r] > hi)
+                hi = samples[r];
+        }
+        double ns_per_op = median_of(samples, count);
+        double spread = lo > 0 ? (hi - lo) / lo * 100.0 : 0.0;
 
         if (tsv) {
-            printf("%s\t%lld\t%.4f\t%.2f\t%.3f\n", e->name, (long long)n, ns_per_op,
-                   bytes_per_op, allocs_per_op);
+            printf("%s\t%lld\t%.4f\t%.2f\t%.3f\t%d\t%.4f\t%.4f\t%.1f\n", e->name,
+                   (long long)n, ns_per_op, bytes_per_op, allocs_per_op, count, lo, hi,
+                   spread);
         } else {
             printf("%-34s %12lld %12.2f ns/op", e->name, (long long)n, ns_per_op);
-            if (b.allocs > 0 || b.bytes > 0)
+            if (last.allocs > 0 || last.bytes > 0)
                 printf(" %10.0f B/op %8.2f allocs/op", bytes_per_op, allocs_per_op);
+            /* The spread is only printed when it was actually measured. One run
+             * has a spread of zero, and printing that would claim a precision
+             * nothing supports. */
+            if (count > 1)
+                printf("  spread %5.1f%% over %d", spread, count);
             printf("\n");
         }
         fflush(stdout);
