@@ -47,7 +47,7 @@ func init() {
 		hashIntKeys[i] = i*7 + 1
 		hashFloatKeys[i] = float64(i)*1.5 + 0.25
 		hashShortKeys[i] = fmt.Sprintf("key%08d", i)
-		hashLongKeys[i] = fmt.Sprintf("/some/reasonably/long/path/that/a/real/program/would/use/%05d", i)
+		hashLongKeys[i] = fmt.Sprintf("/some/reasonably/longer/path/that/a/real/program/would/use/%05d", i)
 		if len(hashLongKeys[i]) != hashLongLen {
 			panic("long key is not the length the C side uses")
 		}
