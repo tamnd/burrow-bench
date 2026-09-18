@@ -25,10 +25,7 @@ package bench
 import "testing"
 
 // sinkInt is declared by the slice benchmarks, which is why it is missing here.
-var (
-	sinkFilter func(int) int
-	sinkTick   func()
-)
+var sinkFilter func(int) int
 
 func addOne(d int) int { return d + 1 }
 
@@ -42,6 +39,35 @@ func doubleIt(d int) int { return d * 2 }
 var globalFilter func(int) int = addOne
 
 var globalDouble func(int) int = doubleIt
+
+// The closures the rows below call, built by a function that captures its
+// argument and stored in package level variables for the reason at the top.
+// A closure literal written inside a benchmark is one the compiler will inline
+// straight through, and the first version of this file did exactly that: the
+// environment row measured a multiply and reported 0.93 ns/op against a real
+// call's 2.5, which is not a faster call, it is no call at all.
+func makeScale(by int) func(int) int {
+	return func(d int) int { return d * by }
+}
+
+func makeBump() func(int) int {
+	n := 0
+	return func(d int) int {
+		n += d
+		return n
+	}
+}
+
+func makeTick() func() {
+	n := 0
+	return func() { n++ }
+}
+
+var (
+	globalScale = makeScale(3)
+	globalBump  = makeBump()
+	globalTick  = makeTick()
+)
 
 // The call the design is about: a load and an indirect call.
 func BenchmarkFuncCall(b *testing.B) {
@@ -62,9 +88,7 @@ func BenchmarkFuncCallDirect(b *testing.B) {
 // A closure reading a captured variable, which is the C side's target reading
 // its environment. One more load than FuncCall and it should cost about that.
 func BenchmarkFuncCallEnv(b *testing.B) {
-	by := 3
-	f := func(d int) int { return d * by }
-	sinkFilter = f
+	f := globalScale
 	for i := 0; i < b.N; i++ {
 		sinkInt = f(i)
 	}
@@ -73,16 +97,10 @@ func BenchmarkFuncCallEnv(b *testing.B) {
 // A closure assigning to a captured variable, which is capture by reference and
 // is the C side writing through its environment pointer.
 func BenchmarkFuncCallWriteEnv(b *testing.B) {
-	n := 0
-	f := func(d int) int {
-		n += d
-		return n
-	}
-	sinkFilter = f
+	f := globalBump
 	for i := 0; i < b.N; i++ {
 		sinkInt = f(1)
 	}
-	sinkInt = n
 }
 
 // Two targets at one call site, alternating every iteration. Level with
@@ -99,13 +117,10 @@ func BenchmarkFuncCallTwoTargets(b *testing.B) {
 // callbacks are: a deferred call, what a goroutine starts with, what
 // sync.Once.Do runs.
 func BenchmarkFuncCall0(b *testing.B) {
-	n := 0
-	f := func() { n++ }
-	sinkTick = f
+	f := globalTick
 	for i := 0; i < b.N; i++ {
 		f()
 	}
-	sinkInt = n
 }
 
 // Building one and letting it escape, which is a heap allocation in Go and two
@@ -138,9 +153,7 @@ func BenchmarkFuncHigherOrder(b *testing.B) {
 	for i := range xs {
 		xs[i] = i
 	}
-	by := 3
-	f := func(d int) int { return d * by }
-	sinkFilter = f
+	f := globalScale
 	for i := 0; i < b.N; i++ {
 		sinkInt = countOver(xs, f)
 	}
