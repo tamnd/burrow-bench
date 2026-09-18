@@ -161,6 +161,14 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `any_equal_type_miss` | Go's `==` | The same number as two types, answered from the descriptors without reading either value |
 | `io_copy_buffer_64k` | Go's `io.CopyBuffer` | Dispatch where it happens, two hundred and fifty six interface calls per iteration |
 | `io_read_full_4k` | Go's `io.ReadFull` | Eight reads into one buffer, which is the shape of every header parse |
+| `func_call` | `func_call_direct`, Go's closure call | A load and an indirect call, which is the claim the function value design makes |
+| `func_call_direct` | `func_call` | The same work with the function named at the call site, so the gap is what the value costs |
+| `func_call_env` | Go's closure over a variable | A target that reads its environment, which is a closure reading a capture |
+| `func_call_write_env` | Go's closure assigning to a capture | Capture by reference, where the store cannot be hoisted out of either loop |
+| `func_call_two_targets` | Go's | Two targets at one call site, which is what real code looks like |
+| `func_call0` | Go's `func()` | The no argument shape, which is what `defer`, `go` and `sync.Once.Do` all take |
+| `func_make` | Go's closure literal | Two stores here against a heap allocation in Go, so read the allocation columns |
+| `func_higher_order` | Go's | Sixty four calls through a value passed into a loop, which is where people actually use one |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -175,6 +183,14 @@ The first is that most of them measure one or two nanoseconds, and on that scale
 The second is `iface_call`, which needs `bench_hide` to mean anything at all. Hand clang a vtable it can trace back to a constant and it turns the indirect call into a direct one, inlines the body, and leaves a loop that adds one to a register, which measures at the cost of an empty loop and looks like a triumph. The Go side hides the same thing by reading the value out of a package level variable. This is the same failure as a missing `bench_keep` wearing a different hat, and `bench_hide` exists because of it.
 
 `iface_narrow` is the one uneven pair in the group and it is uneven in burrow's favour, so it is worth saying plainly what the difference is. Go converting an `io.ReadWriter` to an `io.Reader` calls `runtime.convI2I`, which finds the itab for the narrower interface in a cache, because that itab is a separate object. burrow keeps the narrower vtable inside the wider one, so the conversion is the address of a member. Different work, not a faster version of the same work.
+
+The function value rows have the same harness floor under them and one finding on top of it. On a quiet core, `func_call` measured 3.23 nanoseconds against `func_call_direct` at 1.85, and Go's pair measured 2.24 against 0.54. The absolute gap between the two languages is the floor, since the C side calls `bench_keep` per iteration and Go stores to a package variable, and it is the same 1.3 nanoseconds on every row here. What the rows say once you stop reading the absolute numbers is that a call through a function value costs 1.38 nanoseconds more than a call the compiler can see through, and that the same step in Go costs 1.70. A function value is not paying for being written out by hand.
+
+`func_higher_order` is the row where that stops needing an argument, because it calls sixty four times per sink rather than once, so the floor is divided by sixty four rather than added to it. It came out at 133 nanoseconds against Go's 177, which is 2.09 nanoseconds a call against 2.77. That is the number to quote if somebody wants one.
+
+`func_make` is the uneven pair and it is uneven in burrow's favour, so here is the difference. A Go closure that captures a variable and outlives the frame it was made in goes on the heap, which the row shows as 16 bytes and one allocation per operation. A function value here is two words built next to an environment struct the caller already had, so it allocates nothing. That is the whole trade of this design visible in one row: you write the environment struct out by hand, and in exchange building a value is free. The rows above it are where you find out that calling one is free too.
+
+The Go side of these needed the same treatment `bench_hide` gives the C side, and the first version of the file did not have it. A closure written inside a benchmark is one Go inlines straight through, so the environment row reported 0.93 nanoseconds against a real call's 2.5, and the higher order row was three times quicker per call than the row it is meant to be comparable with. Every closure in `go/func_test.go` is now built by a function that captures its argument and read out of a package level variable, which is the Go spelling of the same trick.
 
 Everything else arrives as the packages do.
 
