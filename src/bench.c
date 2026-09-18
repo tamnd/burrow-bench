@@ -4,6 +4,18 @@
  * Use of this source code is governed by a BSD-style licence that can be found
  * in the LICENSE file. */
 
+/* clock_gettime and CLOCK_MONOTONIC are POSIX, not C11, and glibc hides
+ * everything that is not C11 when the compiler is asked for strict C11, which
+ * -std=c11 is. macOS declares them anyway so this never showed up locally. It
+ * has to come before any header, including bench.h, because the first system
+ * header pulled in is the one that decides what the rest of them expose.
+ *
+ * 199309L is the revision that added clock_gettime, and asking for exactly that
+ * rather than a later one keeps the request honest about what is being used. */
+#if !defined(_WIN32)
+#define _POSIX_C_SOURCE 199309L
+#endif
+
 #include "bench.h"
 
 #include <stdio.h>
