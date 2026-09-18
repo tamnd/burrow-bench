@@ -104,6 +104,9 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `arena_append_grow` | `realloc_grow`, Go's `append` | The last allocation unwind is meant to make this grow in place |
 | `arena_reset` | nothing | Resetting should not touch the memory it is keeping, so this should be flat |
 | `heap_alloc` | `malloc_free` | The same malloc behind the allocator interface, so the gap is what the interface costs |
+| `track_arena_alloc` | `arena_alloc` | The tracking allocator over an arena, so the gap is what the bookkeeping costs |
+| `track_heap_alloc` | `heap_alloc` | The same over the heap, where the allocation underneath is no longer nearly free |
+| `track_heap_quarantine` | `track_heap_alloc` | Allocate and free in a loop, which is the path that poisons the block and holds it |
 | `str_eq_long` | `memcmp_long`, Go's `==` | Same length, differing in the last byte, so the comparison reads all of it |
 | `str_eq_different_lengths` | `strcmp_different_lengths` | Answered from the length words, which is where the design shows |
 | `str_cmp_long` | `memcmp_long`, Go's `strings.Compare` | |

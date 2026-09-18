@@ -20,6 +20,7 @@
 #include "burrow/mem.h"
 #include "burrow/mem/arena.h"
 #include "burrow/mem/heap.h"
+#include "burrow/mem/track.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -164,6 +165,73 @@ BENCH(heap_alloc_zeroed) {
     }
 }
 
+/* ------------------------------------------------------------------- track
+ *
+ * What it costs to run under the checking allocator, which is the question
+ * anybody asks before turning it on for a whole test suite. Each row here has
+ * the bare allocator directly above it in the table, so the overhead is a
+ * division rather than a claim.
+ *
+ * The first two turn the quarantine off, so they measure the bookkeeping on its
+ * own: a hash of the pointer, a probe, a record allocated from the heap, and the
+ * same three again on the way back. The third leaves the quarantine at its
+ * default, which is what a test run actually uses, and the difference between it
+ * and the second is what the poison memset and the deferred free cost.
+ *
+ * None of these have a Go row next to them, and they are not meant to. Go has
+ * no equivalent because Go has no equivalent problem. */
+
+BENCH(track_arena_alloc) {
+    Arena ar;
+    Track tr;
+    arena_init(&ar, NULL, 0);
+    track_init(&tr, arena_allocator(&ar));
+    track_set_quarantine(&tr, 0);
+    Alloc *a = track_allocator(&tr);
+
+    BENCH_LOOP(b) {
+        void *p = mem_alloc_nozero(a, SMALL, 8);
+        bench_keep(p);
+        /* Through the wrapper rather than through the arena, since a reset is
+         * what tells the wrapper those blocks were given back and not leaked,
+         * and the cost of clearing the records belongs in this number. */
+        if ((bench_i_ & (RESET_EVERY - 1)) == 0)
+            mem_reset(a);
+    }
+
+    track_free(&tr);
+    arena_free(&ar);
+}
+
+BENCH(track_heap_alloc) {
+    Track tr;
+    track_init(&tr, heap_allocator());
+    track_set_quarantine(&tr, 0);
+    Alloc *a = track_allocator(&tr);
+
+    BENCH_LOOP(b) {
+        void *p = mem_alloc_nozero(a, SMALL, 8);
+        bench_keep(p);
+        mem_free(a, p, SMALL, 8);
+    }
+
+    track_free(&tr);
+}
+
+BENCH(track_heap_quarantine) {
+    Track tr;
+    track_init(&tr, heap_allocator());
+    Alloc *a = track_allocator(&tr);
+
+    BENCH_LOOP(b) {
+        void *p = mem_alloc_nozero(a, SMALL, 8);
+        bench_keep(p);
+        mem_free(a, p, SMALL, 8);
+    }
+
+    track_free(&tr);
+}
+
 /* ---------------------------------------------------------------- baseline */
 
 BENCH(malloc_free) {
@@ -205,6 +273,9 @@ void register_mem_benchmarks(void) {
     BENCH_RUN(arena_append_grow);
     BENCH_RUN(heap_alloc);
     BENCH_RUN(heap_alloc_zeroed);
+    BENCH_RUN(track_arena_alloc);
+    BENCH_RUN(track_heap_alloc);
+    BENCH_RUN(track_heap_quarantine);
     BENCH_RUN(malloc_free);
     BENCH_RUN(calloc_free);
     BENCH_RUN(realloc_grow);
