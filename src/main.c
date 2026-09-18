@@ -12,11 +12,13 @@
 
 #include "bench.h"
 
+void register_error_benchmarks(void);
 void register_mem_benchmarks(void);
 void register_slice_benchmarks(void);
 void register_str_benchmarks(void);
 
 int main(int argc, char **argv) {
+    register_error_benchmarks();
     register_mem_benchmarks();
     register_slice_benchmarks();
     register_str_benchmarks();

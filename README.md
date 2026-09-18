@@ -31,6 +31,18 @@ tools/run.sh
 
 That builds both sides, runs them with the same iteration counts, and prints a table with the ratio in the last column. The ratio is the number that matters. A raw nanosecond count tells you about the machine it was measured on and not much else.
 
+On Linux, pin it:
+
+```sh
+tools/run.sh -pin 5 -o results/server2-2026-09-18.txt
+```
+
+Both sides get the same core, and Go also gets `GOMAXPROCS=1`, since a pinned Go process otherwise starts a thread per core and then fights itself for the one core it is allowed to use. Pick a core that is not core 0, because that is where interrupts land.
+
+This matters more than it sounds like it should. An unpinned run gets migrated between cores partway through, arrives with a cold cache and a cold branch predictor, and on a two socket machine can end up reading memory attached to the other socket. Three runs of one benchmark on a lightly loaded server came back 9.3, 15.1 and 22.8 nanoseconds unpinned, and within one percent of each other pinned. The header of every results file records whether the run was pinned, so a file that does not say so is not evidence about anything smaller than a factor of two.
+
+macOS has no equivalent. Thread affinity there is a hint and there is nothing that pins a process to a core, so `-pin` is Linux only and a Mac run says `pinned no` in its header.
+
 ## How a benchmark here is written
 
 The harness copies Go's `testing.B`, because burrow will eventually port `testing` and these benchmarks should survive that with a search and replace rather than a rewrite.
@@ -70,7 +82,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators and `Str`.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice` and `Error`.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -86,6 +98,24 @@ burrow is early and this tracks it. Right now that means the allocators and `Str
 | `str_from_cstr_short` | `strlen_short` | Should be exactly `strlen` and nothing more |
 | `str_clone_medium` | Go's `strings.Clone` | |
 | `str_at` | `raw_index`, Go's `s[i]` | What the bounds check costs |
+| `slice_append_grow` | Go's `append` | A thousand ints one at a time, which is the shape of every parse loop |
+| `slice_append_prealloc` | `raw_append_prealloc`, Go's `append` | The gap against `slice_append_grow` is what the growth costs |
+| `slice_append_bulk` | Go's `append(s, xs...)` | Sixteen appends of sixty four instead of a thousand and twenty four of one |
+| `slice_append_call` | `slice_append_prealloc` | The same loop through the function rather than the macro, so the inlining stays measured |
+| `slice_make` | `calloc_1k`, Go's `make` | Zeroed, because Go's is |
+| `slice_index` | `raw_index_int`, Go's `s[i]` | What the bounds check and the element size lookup cost |
+| `slice_index_call` | `slice_index` | The function rather than the macro, the other half of that pair |
+| `slice_copy` | `memcpy_same_size`, Go's `copy` | A memmove, because `copy(s, s[1:])` is how you delete an element |
+| `error_is_sentinel` | Go's `errors.Is` | Once per read in every loop that reads to the end, so it has to be two loads and a branch |
+| `error_is_chain` | Go's `errors.Is` | Five layers deep, which is what a chain looks like after three package boundaries |
+| `error_as_chain` | Go's `errors.As` | Pointer comparison against Go's reflection |
+| `error_message` | Go's `err.Error()` | The vtable dispatch, both sides holding a message that is already built |
+| `error_return_ok` | Go's `return nil` | Two words through the return registers against a nil interface, which is the success path of the whole library |
+| `error_new` | Go's `errors.New` | One allocation here against Go's, because the struct and its text share a block |
+| `error_join_two` | Go's `errors.Join` | burrow builds the message now and Go builds it when somebody prints, so this one is slower on purpose |
+| `error_is_tree` | Go's `errors.Is` | The depth first walk over what `Join` produces, rather than a chain |
+
+`ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
 Two of the Go pairings are uneven and the table in `results/` says so where it matters. `str_from_cstr` against Go's `len` is comparing a `strlen` call against a field read, because a Go string carries its length and a `char *` does not. That gap is the cost of the boundary between C and burrow, it is paid once when a string enters the library, and it is not a fact about `Str`.
 

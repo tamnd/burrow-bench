@@ -23,6 +23,19 @@ TIME=${TIME:-1}
 # Five runs per benchmark by default, so that the table carries a spread and
 # not just a number. Go's -count defaults to one and everybody regrets it.
 COUNT=${COUNT:-5}
+# Which CPU to pin both sides to. Empty means do not pin.
+#
+# On a server with other people's work on it, the difference between a pinned
+# run and an unpinned one is the difference between a measurement and an
+# average of the scheduler. An unpinned benchmark gets migrated between cores
+# mid run, arrives with a cold cache and a cold branch predictor, and on a
+# machine with more than one socket it can end up reading memory attached to the
+# other one. Three runs of one benchmark on a lightly loaded server came back
+# 9.3, 15.1 and 22.8 nanoseconds unpinned, and within one percent of each other
+# pinned.
+#
+# Pick a core that is not core 0, because that is where interrupts land.
+PIN=${PIN:-}
 out=""
 
 while [ $# -gt 0 ]; do
@@ -39,12 +52,36 @@ while [ $# -gt 0 ]; do
 		COUNT=$2
 		shift 2
 		;;
+	-pin)
+		PIN=$2
+		shift 2
+		;;
 	*)
-		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs]" >&2
+		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs] [-pin cpu]" >&2
 		exit 2
 		;;
 	esac
 done
+
+# The pinning command, worked out once.
+#
+# taskset on Linux. macOS has no equivalent a benchmark can use: thread
+# affinity there is a hint to the scheduler and there is nothing that pins a
+# process to a core, so a run on a Mac says so in the header rather than
+# pretending. If taskset is missing on a Linux box, that is nothing but a
+# missing util-linux and worth saying out loud, because the alternative is a
+# results file that claims a pin it did not get.
+pin_cmd=""
+pin_note="no"
+if [ -n "$PIN" ]; then
+	if command -v taskset >/dev/null 2>&1; then
+		pin_cmd="taskset -c $PIN"
+		pin_note="cpu $PIN with taskset"
+	else
+		echo "run.sh: -pin $PIN asked for but taskset is not installed" >&2
+		exit 2
+	fi
+fi
 
 # ---------------------------------------------------------------- the header
 
@@ -77,6 +114,7 @@ header() {
 	echo "compiler   $cc_version"
 	echo "burrow     $burrow_id"
 	echo "bench      $bench_id"
+	echo "pinned     $pin_note"
 	echo "date       $(date -u '+%Y-%m-%d %H:%M:%SZ')"
 	if command -v go >/dev/null 2>&1; then
 		echo "go         $(go version | cut -d' ' -f3)"
@@ -91,10 +129,23 @@ header() {
 c_out=$BUILD/c.tsv
 go_out=$BUILD/go.txt
 
-"$BUILD/bench" -time "$TIME" -count "$COUNT" -tsv >"$c_out"
+# Both sides get the same treatment, pin included. Pinning one and not the
+# other would put the difference between the two environments into the ratio
+# column and call it a result.
+#
+# Go gets GOMAXPROCS=1 alongside the pin, because a pinned Go process still
+# starts a thread per core and then fights itself for the one core it is allowed
+# to use.
+# shellcheck disable=SC2086
+$pin_cmd "$BUILD/bench" -time "$TIME" -count "$COUNT" -tsv >"$c_out"
 
 if command -v go >/dev/null 2>&1; then
-	(cd go && go test -run '^$' -bench . -benchmem -benchtime "${TIME}s" -count "$COUNT" ./...) >"$go_out"
+	go_env=""
+	if [ -n "$pin_cmd" ]; then
+		go_env="GOMAXPROCS=1"
+	fi
+	# shellcheck disable=SC2086
+	(cd go && env $go_env $pin_cmd go test -run '^$' -bench . -benchmem -benchtime "${TIME}s" -count "$COUNT" ./...) >"$go_out"
 else
 	: >"$go_out"
 fi

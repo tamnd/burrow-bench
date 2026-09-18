@@ -27,3 +27,14 @@ slice_index              SliceIndex
 slice_sub                SliceSub
 slice_copy               SliceCopy
 slice_from_str_medium    SliceBytesFromString
+error_is_sentinel        ErrorIsSentinel
+error_is_sentinel_miss   ErrorIsSentinelMiss
+error_is_chain           ErrorIsChain
+error_is_chain_miss      ErrorIsChainMiss
+error_as_chain           ErrorAsChain
+error_message            ErrorMessage
+error_return_ok          ErrorReturnOk
+error_new                ErrorNew
+error_sentinel_use       ErrorSentinelUse
+error_join_two           ErrorJoinTwo
+error_is_tree            ErrorIsTree
