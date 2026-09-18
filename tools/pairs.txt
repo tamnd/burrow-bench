@@ -80,3 +80,12 @@ func_call_two_targets    FuncCallTwoTargets
 func_call0               FuncCall0
 func_make                FuncMake
 func_higher_order        FuncHigherOrder
+num_add                  NumAdd
+num_mul                  NumMul
+num_div                  NumDiv
+num_mod                  NumMod
+num_shl                  NumShl
+num_shr                  NumShr
+num_from_float64         NumFromFloat64
+num_hash_round           NumHashRound
+num_sum                  NumSum
