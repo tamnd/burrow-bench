@@ -1,0 +1,15 @@
+# Build output, which includes the fetched copy of burrow. Nothing here is
+# worth keeping, and the fetched checkout in particular must never be committed
+# because then the benchmarks would run against a snapshot nobody updates.
+build/
+*.o
+*.a
+*.exe
+
+# Editors and platforms.
+.DS_Store
+.vscode/
+.idea/
+*.swp
+compile_commands.json
+.cache/

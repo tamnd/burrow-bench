@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: clang-format
+        run: |
+          clang-format --version
+          clang-format --dry-run --Werror $(git ls-files '*.c' '*.h')
+
+      - name: shellcheck
+        run: shellcheck tools/*.sh
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l go)
+          if [ -n "$unformatted" ]; then
+            echo "$unformatted" >&2
+            echo "run gofmt -w go" >&2
+            exit 1
+          fi
+
+      - name: Trailing whitespace
+        run: |
+          if git grep -nIP '[ \t]+$' -- '*.c' '*.h' '*.go' '*.md' '*.yml'; then
+            echo "trailing whitespace above" >&2
+            exit 1
+          fi
+
+      # Every pair in this file is a claim that a C benchmark and a Go benchmark
+      # do the same work, so a pair naming something that does not exist is a
+      # table column that silently goes blank. Cheaper to catch here.
+      - name: Every pair names a benchmark that exists
+        run: tools/check-pairs.sh
+
+  # This job proves the benchmarks still compile and still finish. It does not
+  # produce numbers and the numbers it prints should not be read. A shared
+  # runner is a noisy virtual machine sharing a host with strangers, and a
+  # regression check built on one would be wrong often enough that everybody
+  # would learn to ignore it. Real numbers come from a machine doing nothing
+  # else, run by hand with tools/run.sh, and land in results/.
+  smoke:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-gcc
+            os: ubuntu-latest
+            cc: gcc
+          - name: linux-clang
+            os: ubuntu-latest
+            cc: clang
+          - name: linux-arm64-gcc
+            os: ubuntu-24.04-arm
+            cc: gcc
+          - name: macos-clang
+            os: macos-latest
+            cc: clang
+    steps:
+      - uses: actions/checkout@v7
+
+      # -n 100 fixes the iteration count, which skips the part of the harness
+      # that scales until a run takes a second. The whole job is then a few
+      # seconds rather than a few minutes.
+      - name: build and run once
+        run: |
+          make CC=${{ matrix.cc }}
+          ./build/bench -n 100
+
+      - name: list is complete
+        run: |
+          registered=$(./build/bench -list | sort)
+          declared=$(git grep -hoP 'BENCH\(\K[a-z0-9_]+' -- 'bench/*.c' | sort)
+          if [ "$registered" != "$declared" ]; then
+            echo "a benchmark is declared but not registered, or the other way round" >&2
+            diff <(echo "$declared") <(echo "$registered") || true
+            exit 1
+          fi
+
+  # The Go side has to build and run too, or the comparison quietly turns into
+  # the C side on its own and nobody notices for a month.
+  go:
+    name: go
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.1"
+          cache: false
+      - name: vet
+        run: cd go && go vet ./...
+      - name: run once
+        run: cd go && go test -run '^$' -bench . -benchtime 10x -benchmem ./...
+
+  # The comparison script end to end, on the one platform where everything it
+  # needs is installed. It is the piece most likely to break without anybody
+  # running it, because people run make bench far more often than they run this.
+  compare:
+    name: compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.1"
+          cache: false
+      - name: tools/run.sh produces a table
+        run: |
+          tools/run.sh -time 0.05 | tee out.txt
+          grep -q 'arena_alloc' out.txt
+          grep -q 'ratio' out.txt
+
+  sanitizers:
+    name: ${{ matrix.san }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - san: asan+ubsan
+            flags: -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+          - san: msan
+            flags: -fsanitize=memory -fsanitize-memory-track-origins=2 -fno-omit-frame-pointer
+    steps:
+      - uses: actions/checkout@v7
+      # A benchmark is the easiest place in the world to write a buffer overrun,
+      # because the whole file is loops over raw memory with the checks turned
+      # off for speed. burrow's own suite covers burrow. This covers the
+      # benchmarks themselves, so that a bad number is never a bad benchmark.
+      - name: build and run under the sanitiser
+        run: |
+          make CC=clang SAN='${{ matrix.flags }}'
+          ./build/bench -n 10
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1

@@ -1,0 +1,24 @@
+# One formatter, no arguments about braces, and it runs in CI so the argument
+# cannot restart. LLVM's style with four space indents and a wider column, which
+# is close enough to what most C people already write that nobody has to learn
+# anything.
+---
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 88
+PointerAlignment: Right
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+BreakBeforeBraces: Attach
+SpaceAfterCStyleCast: false
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+# Comments are prose in this project and prose is reflowed by the person
+# writing it, not by a tool that does not know where the sentence ends.
+ReflowComments: false

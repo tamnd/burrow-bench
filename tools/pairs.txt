@@ -1,0 +1,21 @@
+# Which C benchmark lines up with which Go benchmark.
+#
+# Two columns, whitespace separated: the C name, then the Go name without the
+# Benchmark prefix. A C benchmark with no Go counterpart is left out, which is
+# the case for everything measuring a C library function rather than burrow.
+#
+# Keep this honest. A pair in this file is a claim that both sides do the same
+# work, and the ratio it produces will end up in a README somewhere.
+
+arena_alloc              AllocSmall
+arena_alloc_zeroed       AllocSmallZeroed
+arena_alloc_large        AllocLarge
+arena_append_grow        AppendGrow
+str_from_cstr_short      LenShort
+str_from_cstr_medium     LenMedium
+str_eq_short             EqualShort
+str_eq_long              EqualLong
+str_eq_different_lengths EqualDifferentLengths
+str_cmp_long             CompareLong
+str_clone_medium         CloneMedium
+str_at                   Index

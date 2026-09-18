@@ -1,0 +1,18 @@
+burrow
+Copyright 2026 The burrow Authors
+
+burrow is a C port of the Go standard library. Substantial portions of this
+software are derived from the Go programming language's standard library,
+Copyright 2009 The Go Authors, licensed under the BSD 3-Clause licence
+reproduced in LICENSE, with the additional patent grant in PATENTS.
+
+burrow is not affiliated with, endorsed by, or sponsored by Google or the Go
+project. Go is a trademark of Google LLC.
+
+Every source file derived from Go names the upstream file it came from, along
+with the Go release and commit it was read at, so that a reviewer can diff the
+two. CI fails any file in the derived set whose header does not name a real
+upstream file.
+
+Third party code carried in this repository, if any, is listed in licences/
+with its own notice file. There is none at the time of writing.
