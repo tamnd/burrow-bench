@@ -94,7 +94,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, and reading bytes as text.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, and the pieces the scheduler is going to be assembled from.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -199,6 +199,22 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `utf8_encode_ascii` | Go's `utf8.EncodeRune` | One byte out, which is a compare and a store |
 | `utf8_encode_wide` | Go's `utf8.EncodeRune` | Four bytes out, an emoji, which is the longest form |
 | `utf8_rune_len` | Go's `utf8.RuneLen` | Three compares and no memory at all |
+| `atomic_add_u64` | Go's `atomic.AddUint64` | One instruction on both sides, so a gap here is a wrapper that failed to inline |
+| `atomic_add_u32` | Go's `atomic.AddUint32` | The same on the width 32 bit machines do without a lock table |
+| `atomic_load_u64` | Go's `atomic.LoadUint64` | An acquire load, which on arm64 is a different instruction and on x86 is an ordinary one |
+| `atomic_store_u64` | Go's `atomic.StoreUint64` | The release half of the pair |
+| `atomic_cas_u64` | Go's `atomic.CompareAndSwapUint64` | Always succeeding, because a failing one measures the retry loop instead |
+| `note_cycle` | Go's `sync.WaitGroup` cycle | Close the gate, open it, walk through it, with nobody waiting, which is the case a scheduler hits most |
+| `note_pingpong` | Go's unbuffered channel | A real handoff between two threads, against the same handoff between two goroutines, which is the gap the scheduler exists to close |
+| `thread_start_join` | Go's `go` plus a `WaitGroup` | A clone syscall and a stack from the kernel, against a few hundred bytes from a free list |
+| `thread_yield` | Go's `runtime.Gosched` | Giving the processor up through the kernel against giving a turn up in user space |
+| `thread_self` | nothing | Go does not export a goroutine id on purpose, so there is nothing honest to pair it with |
+| `context_switch` | Go's goroutine switch | Two switches per iteration on both sides, one of which goes through a scheduler and a channel and one of which does not |
+| `context_make` | nothing | Laying a trampoline over a stack that already exists, which Go does not let a program do |
+| `stack_alloc_free_min` | nothing | The mapping and the guard page a goroutine gets when nothing is cached, which is the number a free list has to beat |
+| `stack_alloc_free_large` | nothing | A megabyte, because unmapping has to walk the page tables for everything it takes back |
+| `stack_set_current` | nothing | What the scheduler will call on every switch, so it has to stay a thread local store |
+| `stack_page_size` | nothing | Asked for on every allocation, and the header claims it is a memory read rather than a system call |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -243,6 +259,14 @@ There is a third finding in there that is worth recording because it is not obvi
 `utf8_decode_ascii`, `utf8_encode_ascii` and `utf8_rune_len` have the harness floor under them the same way the interface rows do, and it is worse here because the Go side of all three is a constant the compiler folds. Half a nanosecond against four is two different sinks, not two different decoders. Read those three against each other and against the Japanese rows next to them.
 
 `utf8_rune_count_long` is an open row rather than a finding. Neither side has a word at a time skip in `RuneCount`, both loops are a compare and two increments per ASCII byte, and burrow measures 4562.28 against Go's 2429. The plain byte loop next to it, `utf8_rune_count_long_raw`, is 1389.64, so the shape of the loop is not the problem and something about the general one is. Nobody has taken it apart yet.
+
+The runtime rows are the ones to read least literally, because four of the six have no Go pair and three of them are not meant to be fast. They are here so that the scheduler can be measured against the parts it is made of rather than against nothing.
+
+`context_switch` is the row with a pair and the pair is uneven on purpose. Both sides pass a turn back and forth twice per iteration, and Go's version goes through the scheduler and an unbuffered channel while burrow's saves registers and changes a stack pointer. So the burrow number is a floor and the Go number is the target, and the distance between them is the budget a goroutine switch has to fit inside. On an M4 that came out at 36.40 nanoseconds against Go's 231.60, which says there is about 195 nanoseconds of room for everything a real scheduler has to do, and that if the finished thing lands anywhere near Go it will not be the switch that made it slow.
+
+`stack_alloc_free_min` is a thousand nanoseconds and that is the correct answer to the wrong question. It is one `mmap`, one `mprotect` and one `munmap`, and Go does not pay that per goroutine because it keeps 2, 4, 8 and 16 kilobyte spans in a per P cache and only goes to the kernel when the cache is empty. burrow will have the same cache and the rows for it go in next to these. Until then this row is the price of not having one, which is the most useful thing it can be: a launch that costs a microsecond cannot reach ten million launches a second on any number of cores.
+
+`stack_page_size` came out at 7 nanoseconds on macOS, which is slower than the header's description of it as a memory read led anybody to expect. It is `sysconf`, so it is a call and a switch rather than a syscall, and against a thousand nanosecond allocation it is well under one percent and not worth caching yet. It is worth a row, because the day it becomes a syscall on some platform this is where it will show.
 
 Everything else arrives as the packages do.
 
