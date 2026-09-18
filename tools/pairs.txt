@@ -113,3 +113,4 @@ note_cycle               NoteCycle
 note_pingpong            NotePingpong
 thread_start_join        ThreadStartJoin
 thread_yield             ThreadYield
+context_switch           GoroutineSwitch
