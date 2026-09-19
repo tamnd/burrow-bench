@@ -23,6 +23,7 @@ void register_mem_benchmarks(void);
 void register_num_benchmarks(void);
 void register_runtime_benchmarks(void);
 void register_sched_benchmarks(void);
+void register_select_benchmarks(void);
 void register_slice_benchmarks(void);
 void register_str_benchmarks(void);
 void register_sync_benchmarks(void);
@@ -41,6 +42,7 @@ int main(int argc, char **argv) {
     register_num_benchmarks();
     register_runtime_benchmarks();
     register_sched_benchmarks();
+    register_select_benchmarks();
     register_slice_benchmarks();
     register_str_benchmarks();
     register_sync_benchmarks();
