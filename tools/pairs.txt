@@ -156,3 +156,13 @@ timer_reset_stop         TimerResetStop
 timer_reset_stop_deep    TimerResetStopDeep
 timer_sleep_1ms          TimerSleep1ms
 timer_fire_burst         TimerFireBurst
+
+# select. Every row here has a channel row above it that it should be read
+# against, because what these measure is what the decision on the front of a
+# channel operation costs. One warning about the Go side, written out at the top
+# of go/select_test.go: Go's compiler turns a select with one case into the bare
+# operation, so every row on both sides has at least two arms.
+select_uncontended       SelectUncontended
+select_default           SelectDefault
+select_eight_arms        SelectEightArms
+select_pingpong          SelectPingpong
