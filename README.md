@@ -94,7 +94,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, and the monotonic clock the timers are going to be built on.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, and the timers built on that.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -232,6 +232,11 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `nanotime_interval` | nothing | Two readings and the subtraction between them, which is what timing a piece of work costs |
 | `note_timeout_hit` | nothing | A timed sleep on a gate that is already open, which is the path a parking thread takes almost every time |
 | `note_timeout_poll` | nothing | The same call with no time in it, which is how a caller looks without waiting |
+| `timer_arm_stop` | Go's `AfterFunc` plus `Stop` | A whole timer from nothing to stopped, allocation included, which is the deadline round trip for a program that does not keep its timers |
+| `timer_reset_stop` | Go's `Reset` plus `Stop` | One timer armed and cancelled over and over, which is a connection moving its read deadline, and the row with no allocator in it |
+| `timer_reset_stop_deep` | the same with a thousand others in the heap | Whether the cost of a deadline grows with the number of connections, which it should not |
+| `timer_sleep_1ms` | Go's `time.Sleep` | Read as latency rather than throughput, since the number worth having is the overshoot past a millisecond |
+| `timer_fire_burst` | the same in Go | A thousand timers due at once and the wait until every callback has run, which is a heap pop and a goroutine launch each |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -314,6 +319,20 @@ Which leaves the larger thing those two numbers were sitting inside. `note_cycle
 burrow does the same thing now, and the row is in [results/server2-2026-09-19-note-count.txt](results/server2-2026-09-19-note-count.txt). A note keeps a count of the threads that are about to sleep on it, a wake with nobody in that count stays in user space, and `note_cycle` went from 352.58 nanoseconds to 10.96 on the same machine in the same conditions. The ratio went from 20.32x to 0.72x, so the row that was the worst on the board is now slightly ahead of Go. `note_timeout_hit` came with it, from 296.99 to 9.73, which is what the benchmark comment predicted would happen: the two rows do the same work when the gate is already open, so they should track each other, and they do.
 
 `note_pingpong` did not move, and that is the right outcome rather than a disappointment. Two threads handing a turn back and forth means somebody really is asleep every time, so there is a real wake to make and no user space shortcut to take. It sits at 8795.94 nanoseconds against Go's 545.90, a ratio of 16x, and that gap is now the worst one on the board. It is also a different problem: Go's unbuffered channel hands off between two goroutines on the same thread without the kernel ever hearing about it, and burrow will not close that gap with a faster note, it will close it with a scheduler that parks goroutines instead of threads. That is what the channel and select work is for.
+
+The timer rows are the first ones where burrow has a whole package to compare rather than a piece of one, and four of the five pair cleanly with Go because `AfterFunc`, `Stop`, `Reset` and `Sleep` mean the same thing on both sides. They are all on one P for the same reason the scheduler rows are: timers live in a heap per P, so with more than one the work spreads out and the row measures the machine instead of the timer. What contention across Ps costs is a different benchmark and on this design it should be nothing, which is a claim worth checking once there is something to check it against.
+
+On server2, pinned, against Go 1.26, the whole table is in [results/server2-2026-09-19-timer.txt](results/server2-2026-09-19-timer.txt). `timer_arm_stop` is 206.68 nanoseconds against Go's 298.10, `timer_reset_stop` is 85.57 against 109.00, `timer_reset_stop_deep` is 83.73 against 107.60, `timer_sleep_1ms` is 1131938 against 1136778, and `timer_fire_burst` is 357715 against 639100.
+
+`timer_reset_stop` is the row to quote. It is one timer armed and cancelled over and over, which is what a connection with a read deadline on it does on every single read, and it is the only row with no allocator anywhere in it. `timer_arm_stop` above it is a fair comparison of two programs somebody would write and an unfair comparison of two timer implementations, because Go allocates from its heap and burrow is handed an arena.
+
+`timer_reset_stop_deep` is the row that makes the argument, and the argument is that it is the same number as the row above it. It is the same work with a thousand other timers already in the heap, which is a four way heap five levels deep against one level for an empty one, so if the cost of a deadline grew with the number of connections it would show here as a multiple. It does not show at all. Stopping marks the timer instead of pulling it out of the heap, so a reset finds it still sitting there, and the sift that would move it is a comparison and no swap when every neighbour is also an hour away. That is Go's design and the reason it is Go's design is this row.
+
+The same shape holds on an M4, where three runs of the pair gave 87, 113 and 158 nanoseconds for the arm row against 59, 51 and 66 for the reset row, and 41, 47 and 77 for the deep one. Those are noisy enough that no two of them should be subtracted from each other, and they are quoted anyway because the ordering survives the noise and the ordering is the claim: arming from nothing costs more than resetting, and resetting does not care how many timers are already there.
+
+`timer_sleep_1ms` is level with Go on Linux and that is the whole finding on that row, but it was not level on macOS and chasing that turned up something worth recording. A one millisecond sleep on macOS comes back at one and a half, every time. It is not the timers and it is not the scheduler. A parked thread waits on `pthread_cond_timedwait_relative_np` and macOS gives that timeout a leeway of half the interval so it can coalesce the wakeup with something else, which the way the overshoot scales confirms: 1ms comes back at 1.50, 5ms at 7.51, 10ms at 15.02. Linux waits on a futex and has no such thing, which is why the server2 row is 1.00x. The way out on macOS is to block in `kevent` instead, which is what Go does, so this is the netpoller's problem rather than a bug with a fix in it. It is here so that the row moving on macOS is recognised as the netpoller landing rather than as luck.
+
+`timer_fire_burst` is the other half of the design and the only row here where timers really fire. A thousand of them come due at once and the row waits until every callback has run, so it is a heap pop and a goroutine launch a thousand times over, and the launch is most of it. It comes out at 0.56x, which is roughly where the scheduler rows already are, so what this row says is that firing a timer costs a goroutine launch and nothing much on top. Both sides spin on a counter with a yield in it rather than waiting properly, because burrow has no wait group yet, so neither number is what this costs in a program that waits on something. The comparison is still fair because both sides pay the same spin.
 
 Everything else arrives as the packages do.
 

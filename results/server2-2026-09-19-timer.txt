@@ -1,0 +1,26 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.11-2-g5436317
+bench      unknown
+pinned     cpu 3 with taskset
+statistic  min of 5 runs
+filter     timer
+date       2026-09-19 08:24:56Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+timer_arm_stop                   206.68       5%       298.10       9%     0.69x
+timer_reset_stop                  85.57       6%       109.00       3%     0.79x
+timer_reset_stop_deep             83.73       6%       107.60       8%     0.78x
+timer_sleep_1ms              1131938.77       1%   1136778.00       1%     1.00x
+timer_fire_burst              357715.76       8%    639100.00       7%     0.56x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
