@@ -1,0 +1,26 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.9-4-g9c6e85d
+bench      3964f52
+pinned     cpu 5 with taskset
+statistic  min of 5 runs
+filter     goroutine
+date       2026-09-19 00:12:29Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+goroutine_start                  142.43       2%       487.80       8%     0.29x
+goroutine_start_batch           6908.92       3%     22570.00      13%     0.31x
+goroutine_yield_alone             50.92      21%       136.80      25%     0.37x
+goroutine_yield_pair             100.80       7%       267.90       6%     0.38x
+goroutine_handoff                150.07       3%       682.30       4%     0.22x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
