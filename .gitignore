@@ -2,6 +2,10 @@
 # worth keeping, and the fetched checkout in particular must never be committed
 # because then the benchmarks would run against a snapshot nobody updates.
 build/
+# And any other one, because BUILD= on the make line is how you keep two
+# toolchains apart and every one of those directories is the same disposable
+# thing with a different name.
+build-*/
 *.o
 *.a
 *.exe

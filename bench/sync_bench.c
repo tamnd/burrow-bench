@@ -98,10 +98,17 @@ BENCH(atomic_cas_u64) {
 /* ------------------------------------------------------------------- notes
  *
  * The uncontended cycle first: close the gate, open it, walk through it, all on
- * one thread with nobody waiting. On Linux that is two atomic stores and one
- * futex wake with nothing queued, so it is the cheapest thing a note can do and
- * it is the shape a scheduler hits constantly, since most of the time the
- * thread being signalled has not got round to sleeping yet. */
+ * one thread with nobody waiting. It is the cheapest thing a note can do and it
+ * is the shape a scheduler hits constantly, since most of the time the thread
+ * being signalled has not got round to sleeping yet.
+ *
+ * This row is the reason burrow's notes count their sleepers. It used to make a
+ * futex call every time round, because a wake with nobody queued looks the same
+ * from inside the kernel as a wake with a crowd, and that cost 352 nanoseconds
+ * against 17 for the Go side. Now the wake reads the count, finds nobody, and
+ * stays in user space, and the row is a handful of nanoseconds. If it ever
+ * climbs back into the hundreds then a system call has crept back into a path
+ * that has no business making one. */
 
 static burrow__Note sync_note;
 
