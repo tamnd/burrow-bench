@@ -132,3 +132,15 @@ goroutine_handoff        GoroutineHandoff
 # Go's nanotime is not exported and the timed sleep has no Go program that does
 # the same work without allocating a timer to do it.
 nanotime_elapsed         NanotimeElapsed
+
+# The timers. All five pair, and two of them need a word of warning that is
+# written out in bench/timer_bench.c and go/timer_test.go rather than here.
+# timer_arm_stop has an arena on one side and Go's allocator on the other, so it
+# compares the two programs somebody would write and not the two timer
+# implementations. timer_fire_burst spins on a counter on both sides because
+# burrow has no wait group yet, so both numbers carry the spin.
+timer_arm_stop           TimerArmStop
+timer_reset_stop         TimerResetStop
+timer_reset_stop_deep    TimerResetStopDeep
+timer_sleep_1ms          TimerSleep1ms
+timer_fire_burst         TimerFireBurst
