@@ -221,6 +221,12 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `runq_steal_half` | nothing | One steal of half a full ring, so 128 goroutines moved and one handed back to run |
 | `runq_put_slow` | nothing | What a put onto a full queue turns into: half the ring plus the new one onto a batch for the global queue |
 | `gqueue_push_pop` | nothing | The global queue's list on its own, without the lock that in real use is around it |
+| `goroutine_start` | Go's `go f()` plus a `Gosched` | A launch and the switch into it and out again, one at a time, which is the best case |
+| `goroutine_start_batch` | the same, 64 at a time | The case a server produces, where the queue fills and the launcher is not what runs next |
+| `goroutine_yield_alone` | Go's `runtime.Gosched` | Yielding with nothing else runnable, which is the scheduler looking, finding nothing and coming back |
+| `goroutine_yield_pair` | the same with two goroutines | Every yield is a real switch, so one iteration is two of them |
+| `goroutine_handoff` | Go's unbuffered channel | A blocking volley through `sched_park` and `sched_ready`, against the same volley through a channel |
+| `runtime_start_stop` | nothing | Starting the whole runtime and stopping it again, which in Go means starting a process |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 

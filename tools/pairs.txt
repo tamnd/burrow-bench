@@ -114,3 +114,14 @@ note_pingpong            NotePingpong
 thread_start_join        ThreadStartJoin
 thread_yield             ThreadYield
 context_switch           GoroutineSwitch
+
+# The same Go row appears twice on purpose. GoroutineSwitch is two goroutines
+# volleying on an unbuffered channel, which is the Go program both
+# context_switch and goroutine_handoff are the burrow version of: one is the
+# bare stack switch under everything, the other is the blocking handoff built on
+# it. Seeing them against the same Go number is the point.
+goroutine_start          GoroutineStart
+goroutine_start_batch    GoroutineStartBatch
+goroutine_yield_alone    GoroutineYieldAlone
+goroutine_yield_pair     GoroutineYieldPair
+goroutine_handoff        GoroutineHandoff
