@@ -12,6 +12,7 @@
 
 #include "bench.h"
 
+void register_chan_benchmarks(void);
 void register_clock_benchmarks(void);
 void register_error_benchmarks(void);
 void register_func_benchmarks(void);
@@ -29,6 +30,7 @@ void register_timer_benchmarks(void);
 void register_utf8_benchmarks(void);
 
 int main(int argc, char **argv) {
+    register_chan_benchmarks();
     register_clock_benchmarks();
     register_error_benchmarks();
     register_func_benchmarks();

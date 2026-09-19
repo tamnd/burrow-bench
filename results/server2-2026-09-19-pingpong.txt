@@ -1,0 +1,24 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.13-1-g8a98117
+bench      6c46a1e-dirty
+pinned     cpu 2 with taskset
+statistic  min of 9 runs
+filter     pingpong
+date       2026-09-19 12:28:44Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+note_pingpong                   8624.47      12%       553.10       9%    15.59x
+chan_pingpong_unbuffered         231.98      10%       549.20      38%     0.42x
+chan_pingpong_buffered           232.74      10%       566.30       7%     0.41x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
