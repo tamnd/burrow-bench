@@ -127,6 +127,18 @@ goroutine_yield_alone    GoroutineYieldAlone
 goroutine_yield_pair     GoroutineYieldPair
 goroutine_handoff        GoroutineHandoff
 
+# Channels. chan_pingpong_unbuffered is the same program as note_pingpong above
+# and as goroutine_handoff just above that, written three ways: through the
+# kernel, through park and ready under a one waiter gate, and through a channel
+# the way a Go programmer writes it. Only the last of those is the same program
+# the Go side has been running all along, so this is the first row where the
+# handoff comparison is honest in both directions.
+chan_uncontended         ChanUncontended
+chan_nonblocking         ChanNonblocking
+chan_pingpong_unbuffered ChanPingpongUnbuffered
+chan_pingpong_buffered   ChanPingpongBuffered
+chan_prodcons            ChanProdCons
+
 # The clock. Only one of the four C rows is here, and the header comment in
 # bench/clock_bench.c and go/clock_test.go says why the other three are not:
 # Go's nanotime is not exported and the timed sleep has no Go program that does
