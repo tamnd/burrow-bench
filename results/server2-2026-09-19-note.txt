@@ -1,0 +1,25 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.10-2-g2947329
+bench      cb3ad3f
+pinned     cpu 5 with taskset
+statistic  min of 9 runs
+filter     note
+date       2026-09-19 01:13:10Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+note_cycle                       352.58       9%        17.35       7%    20.32x
+note_pingpong                   9080.73       9%       577.90       8%    15.71x
+
+not paired with a Go benchmark
+note_timeout_poll                  4.22      14%
+note_timeout_hit                 296.99      10%
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

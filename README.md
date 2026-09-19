@@ -94,7 +94,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, and the scheduler itself.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, and the monotonic clock the timers are going to be built on.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -227,6 +227,11 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `goroutine_yield_pair` | the same with two goroutines | Every yield is a real switch, so one iteration is two of them |
 | `goroutine_handoff` | Go's unbuffered channel | A blocking volley through `sched_park` and `sched_ready`, against the same volley through a channel |
 | `runtime_start_stop` | nothing | Starting the whole runtime and stopping it again, which in Go means starting a process |
+| `nanotime` | nothing | One reading of the monotonic clock, which every timer and every deadline starts with |
+| `nanotime_elapsed` | Go's `time.Since` | One reading and a subtraction on both sides, which is the only shape Go lets an outsider compare against |
+| `nanotime_interval` | nothing | Two readings and the subtraction between them, which is what timing a piece of work costs |
+| `note_timeout_hit` | nothing | A timed sleep on a gate that is already open, which is the path a parking thread takes almost every time |
+| `note_timeout_poll` | nothing | The same call with no time in it, which is how a caller looks without waiting |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -295,6 +300,16 @@ Read those with two things in mind. The handoff row is uneven in burrow's favour
 `goroutine_yield_alone` at 50.92 nanoseconds is the row most worth watching. Nothing runs and nothing switches, and it still goes through `mcall` to the scheduler stack, takes the scheduler lock, puts the goroutine on the global queue, and finds it there again. That is Go's design and it is correct, since a goroutine that yields and goes straight back to the front of its own queue has not yielded to anything, but it means a polite compute loop pays fifty nanoseconds a call for nothing. Preemption is what makes those loops stop calling it.
 
 `runtime_start_stop` has no Go pair and cannot have one. It creates the Ps, starts a thread for each, runs one goroutine and joins every thread, and on an M4 it is about 680 microseconds. It is here because burrow can be started and stopped many times in one process, which Go cannot do and which anybody embedding this in a larger C program will end up doing, so it is a number that should be watched rather than allowed to grow quietly.
+
+The clock rows are small numbers that multiply. `burrow__nanotime` is what every timer, every deadline and every timed sleep is built on, and the scheduler is about to read it on every pass round the loop, so a clock that costs thirty nanoseconds instead of three is a tax on all of that. On server2, pinned, one reading is 36.96 nanoseconds and the reading with a subtraction on it is 36.38, which is the same number twice and says the subtraction is free. `nanotime_interval`, the two reading version, is 72.53, which is the same number again doubled. Nothing in this path is arithmetic.
+
+Thirty seven nanoseconds for a clock read is slow, and it is the machine rather than the code. server2 is a virtual machine with `kvm-clock` as its clocksource, which is read through the vdso but is not the plain `rdtsc` a bare metal box with `tsc` gets. An M4 does the same call in about fourteen, and that one has a multiply and a divide in it to turn mach ticks into nanoseconds. The row to watch is not the absolute number, it is whether it ever jumps by a factor of twenty, because that is what a clock read falling out of the vdso and into a real system call looks like.
+
+The paired row reads 0.84x against Go's `time.Since`, which is the answer it should give. Both sides read the monotonic clock once and subtract once, and Go's version carries a little more with it because a `time.Time` is wider than an `int64`.
+
+`note_timeout_hit` is the row that was worth adding, because it found something. It is a timed sleep on a gate somebody has already opened, which is the case a parking thread hits nearly every time: it looks for work, finds none, and goes to sleep with a deadline, and by then the wake it was racing has landed. The comment in the benchmark says the row should stay level with `note_cycle` and that drifting above it means the timeout path has picked up a clock reading it does not need. It was above it. The timed sleep was reading the clock to work out a deadline before it had looked at the gate, and on the portable backend it was taking a mutex as well. burrow now reads the gate first, and the row moved from 21.9 nanoseconds to 14.7 on an M4 and now sits at 296.99 against `note_cycle`'s 352.58 on server2.
+
+Which leaves the larger thing those two numbers are sitting inside. `note_cycle` is 352.58 nanoseconds against Go's 17.35, a ratio of 20x, and it is not the sleep that costs it. It is the wake. burrow's `note_wake` goes into the kernel with a futex call every time, including when nobody is waiting, and the Go row it is paired against is a `sync.WaitGroup` that keeps its waiter count in the same word as its counter and therefore never makes the call. Three hundred nanoseconds to open a gate nobody is standing at is a real problem for a scheduler that parks and unparks threads constantly, and it is the next change in burrow rather than a footnote here.
 
 Everything else arrives as the packages do.
 

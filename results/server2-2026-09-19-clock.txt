@@ -1,0 +1,24 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.10-2-g2947329
+bench      cb3ad3f
+pinned     cpu 5 with taskset
+statistic  min of 9 runs
+filter     nanotime
+date       2026-09-19 01:11:52Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+nanotime_elapsed                  36.38       5%        43.10       8%     0.84x
+
+not paired with a Go benchmark
+nanotime_interval                 72.53       9%
+nanotime                          36.96       5%
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
