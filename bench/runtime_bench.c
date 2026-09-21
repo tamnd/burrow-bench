@@ -29,8 +29,11 @@
 #include "bench.h"
 
 #include "burrow/context.h"
+#include "burrow/runtime.h"
 #include "burrow/sched.h"
+#include "burrow/slice.h"
 #include "burrow/stack.h"
+#include "burrow/type.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -353,6 +356,62 @@ BENCH(runq_put_slow) {
     }
 }
 
+/* ------------------------------------------------------------------ tracing
+ *
+ * What a stack trace costs to collect, which matters because the places that
+ * want one are places that cannot afford much: a logger on an error path, a
+ * profiler sampling a running program, an allocator recording where a block
+ * came from. Printing it is a different cost and is not measured here, since
+ * nobody prints one in a loop.
+ *
+ * Both sides walk from the same depth and ask for the same number of frames, so
+ * the rows are comparable straight across. Go's is a frame pointer walk with a
+ * lookup per frame into the module data to work out whether the frame was
+ * inlined, and burrow's is the walk without the lookup, because burrow has no
+ * inline table to consult yet. So this gap is expected to close rather than
+ * hold, and the row is here to show by how much when it does.
+ *
+ * Windows is the row to watch. It does not walk at all, it asks ntdll for the
+ * whole stack and then finds the asking frame in the answer, and that is a
+ * different order of cost from reading a pair of words per frame. */
+
+#define TR_DEPTH 10
+#define TR_MAX 32
+
+static Uintptr tr_pcs[TR_MAX];
+
+static BURROW_NOINLINE Int tr_down(Int depth, Int max) {
+    volatile Int n;
+
+    if (depth > 0)
+        n = tr_down(depth - 1, max);
+    else
+        n = runtime_callers(0, slice_from(tr_pcs, max, max, TYPE_UINTPTR));
+
+    /* Through a volatile so that neither the recursion nor the call at the
+     * bottom of it can become a jump. A jump would take the frame it reused out
+     * of the trace, and the depth is the whole point of the row. */
+    return n;
+}
+
+/* Ten frames deep and room for all of them, which is the shape a crash reporter
+ * or a profiler asks for. */
+BENCH(callers_ten) {
+    BENCH_LOOP(b) {
+        bench_keep_u64((uint64_t)tr_down(TR_DEPTH, TR_MAX));
+    }
+}
+
+/* The same stack with room for two frames, which is the shape a logger asks for
+ * when all it wants is the line that called it. The walk stops when the buffer
+ * is full, so the difference between this row and the one above is eight
+ * frames, and dividing by eight gives the cost of following one link. */
+BENCH(callers_two) {
+    BENCH_LOOP(b) {
+        bench_keep_u64((uint64_t)tr_down(TR_DEPTH, 2));
+    }
+}
+
 void register_runtime_benchmarks(void);
 
 void register_runtime_benchmarks(void) {
@@ -368,4 +427,6 @@ void register_runtime_benchmarks(void) {
     BENCH_RUN(runq_steal_half);
     BENCH_RUN(runq_put_slow);
     BENCH_RUN(gqueue_push_pop);
+    BENCH_RUN(callers_ten);
+    BENCH_RUN(callers_two);
 }
