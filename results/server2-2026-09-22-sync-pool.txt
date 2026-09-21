@@ -1,0 +1,25 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      b4ca8ce-dirty
+pinned     cpu 5 with taskset
+statistic  min of 21 runs
+filter     sync_pool
+date       2026-09-21 19:14:39Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+sync_pool_get_put                 21.53      19%        16.97      16%     1.27x
+sync_pool_get_put_pair            55.79      15%        48.82      16%     1.14x
+sync_pool_get_new                 24.66      19%        21.32      16%     1.16x
+
+not paired with a Go benchmark
+sync_pool_sweep_idle              15.63      22%
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

@@ -52,6 +52,9 @@ sync_map_load_or_store_hit SyncMapLoadOrStoreHit
 sync_map_store_update      SyncMapStoreUpdate
 sync_map_store_delete_pair SyncMapStoreDeletePair
 sync_map_range             SyncMapRange
+sync_pool_get_put          SyncPoolGetPut
+sync_pool_get_put_pair     SyncPoolGetPutPair
+sync_pool_get_new          SyncPoolGetNew
 error_is_sentinel        ErrorIsSentinel
 error_is_sentinel_miss   ErrorIsSentinelMiss
 error_is_chain           ErrorIsChain
