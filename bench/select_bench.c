@@ -11,14 +11,14 @@
  * wait, where the claim and the leftover entries are extra work a plain receive
  * never does.
  *
- * `select_eight_arms` is the row that watches one specific decision. burrow
- * takes the locks by walking the case list for the lowest address above the
- * last one it locked, which is quadratic in the number of arms, where Go sorts
- * a scratch array and walks that. Sorting is better asymptotically and the
- * claim in docs/design/06-runtime.md is that at the sizes real code uses the
- * walk is cheaper, because it needs no storage and never leaves the cache line
- * the case list is already in. Eight arms against two is what that claim looks
- * like as a number.
+ * `select_eight_arms` is the row that watches one specific decision, and it is
+ * the row that changed burrow's mind. burrow used to take the locks by walking
+ * the case list for the lowest address above the last one it locked, which
+ * needs no storage and reads well and is quadratic in the number of arms, and
+ * the claim was that at the two or three arms a real select has that beats the
+ * sorted scratch array Go uses. Eight arms against two said otherwise: a
+ * quarter of the call was in the unlock. burrow sorts now, as Go does, and
+ * this row is here to keep the answer honest if anybody revisits it.
  *
  * One P everywhere, set before the runtime starts, for the reason
  * bench/sched_bench.c gives: with more than one P a ping pong measures the
