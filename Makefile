@@ -53,7 +53,25 @@ ifneq ($(SAN),)
   BURROW_MAKE += MODE=debug CFLAGS='-std=c11 -O1 -g -Iinclude -DBURROW_SOURCE_ID="bench" $(SAN)'
 endif
 
-BURROW_LIB  := $(BURROW_DIR)/build/libburrow.a
+# Where burrow's own objects land, which is a directory of ours inside its tree
+# rather than its default one. Two reasons, and the first one cost an afternoon.
+#
+# make passes a variable set on its command line down to every sub-make, so
+# `make BUILD=build-eight` moved burrow's library to build-eight/libburrow.a
+# while the link line below still asked for build/libburrow.a, and since a
+# library was sitting there from an earlier run the link succeeded against a
+# burrow built from different headers. That is not a stale build, it is two
+# different definitions of the same struct in one binary, and what it produced
+# was benchmark numbers with nothing wrong with them on the face of it.
+#
+# The second is the sanitiser. A sanitised burrow and a plain one cannot share
+# object files, and nothing in a timestamp says which one is in there.
+#
+# burrow ignores build*/, so this leaves no mark on a working copy somebody
+# pointed BURROW_DIR at.
+BURROW_BUILD := build-bench$(if $(SAN),-san)
+BURROW_MAKE  += BUILD=$(BURROW_BUILD)
+BURROW_LIB   := $(BURROW_DIR)/$(BURROW_BUILD)/libburrow.a
 BENCH_SRCS  := $(wildcard bench/*_bench.c)
 HARNESS     := src/bench.c src/main.c
 BIN         := $(BUILD)/bench
