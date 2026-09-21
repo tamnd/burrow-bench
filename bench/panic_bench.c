@@ -20,6 +20,14 @@
  * implementation, so read them as a comparison of features and not of
  * instruction counts.
  *
+ * panic_runtime_error is the same block again with one of the runtime's own
+ * checks failing in it rather than a call to panic, and the catch block asks
+ * runtime_error_from what it caught, which is what a handler that means to
+ * treat the runtime's mistakes differently from its own actually writes. It
+ * should sit close to panic_caught, because the extra work is a copy of a short
+ * message and a type comparison, and it is here to prove that rather than to
+ * assume it.
+ *
  * No runtime here, the same as the defer benchmarks and for the same reason. A
  * block on a thread that is not a goroutine keeps its state in a thread local
  * instead of on the G, which is one load either way.
@@ -32,6 +40,7 @@
 
 #include "burrow/defer.h"
 #include "burrow/panic.h"
+#include "burrow/runtime.h"
 
 #include <stdint.h>
 
@@ -126,10 +135,36 @@ BENCH(panic_caught_scopes) {
     bench_keep_u64(ticks);
 }
 
+/* One of the runtime's own checks, caught and identified. The index and the
+ * length come from variables so that nothing here is folded away, and the catch
+ * block reads the message rather than only the pointer, because a handler that
+ * never touches the text would let the message copy be optimised out of the
+ * measurement in a way a real one would not. */
+static Int bad_index = 5;
+static Int short_len = 3;
+
+BENCH(panic_runtime_error) {
+    BENCH_LOOP(b) {
+        BURROW_TRY {
+            runtime_index_out_of_range(bad_index, short_len);
+        }
+        BURROW_CATCH(p) {
+            const RuntimeError *re = runtime_error_from(p);
+
+            if (re != NULL)
+                ticks += (uint64_t)re->message.len;
+        }
+        BURROW_TRY_END;
+    }
+
+    bench_keep_u64(ticks);
+}
+
 void register_panic_benchmarks(void);
 
 void register_panic_benchmarks(void) {
     BENCH_RUN(panic_try_empty);
     BENCH_RUN(panic_caught);
     BENCH_RUN(panic_caught_scopes);
+    BENCH_RUN(panic_runtime_error);
 }
