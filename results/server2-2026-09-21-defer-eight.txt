@@ -1,0 +1,27 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.0.15-2-g549ab8f
+bench      b4ca8ce-dirty
+pinned     cpu 5 with taskset
+statistic  min of 9 runs
+filter     defer
+date       2026-09-21 06:26:20Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+defer_one                         13.76      20%         3.96      18%     3.47x
+defer_direct                       2.37       8%         2.32       9%     1.02x
+defer_four                        30.76      18%        15.35       6%     2.00x
+defer_eight                       55.29       6%        30.75       4%     1.80x
+defer_loop_ten                   148.30      18%       274.80      12%     0.54x
+
+not paired with a Go benchmark
+defer_scope_empty                  8.74      11%
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
