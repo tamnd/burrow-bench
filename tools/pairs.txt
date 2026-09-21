@@ -46,6 +46,12 @@ map_set_del_pair         MapSetDeletePair
 map_iter                 MapIter
 map_churn                MapChurn
 map_clear_refill         MapClearRefill
+sync_map_load_hit          SyncMapLoadHit
+sync_map_load_miss         SyncMapLoadMiss
+sync_map_load_or_store_hit SyncMapLoadOrStoreHit
+sync_map_store_update      SyncMapStoreUpdate
+sync_map_store_delete_pair SyncMapStoreDeletePair
+sync_map_range             SyncMapRange
 error_is_sentinel        ErrorIsSentinel
 error_is_sentinel_miss   ErrorIsSentinelMiss
 error_is_chain           ErrorIsChain
