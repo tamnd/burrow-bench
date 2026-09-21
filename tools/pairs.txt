@@ -242,3 +242,6 @@ wait_group_go_wait       WaitGroupGoWait
 once_do                  OnceDo
 once_func_call           OnceFuncCall
 once_value_get           OnceValueGet
+cond_signal_empty        CondSignalEmpty
+cond_broadcast_empty     CondBroadcastEmpty
+cond_ping_pong           CondPingPong

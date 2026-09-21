@@ -231,6 +231,9 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `once_do` | Go's `sync.Once` | The already ran path, which is one load and a branch on both sides and is what a Once costs in every call but the first |
 | `once_func_call` | Go's `sync.OnceFunc` | A struct the caller declares against a closure the collector owns, so the absolute figures say more than the ratio |
 | `once_value_get` | Go's `sync.OnceValue` | The same again with a value coming back, an `Any` here against a type parameter there |
+| `cond_signal_empty` | Go's `sync.Cond.Signal` | A signal with nobody waiting, which is the call a producer that keeps up with its consumers makes most of the time |
+| `cond_broadcast_empty` | Go's `sync.Cond.Broadcast` | The same for a broadcast, and both sides answer it without touching a lock |
+| `cond_ping_pong` | the same in Go | Two goroutines taking turns through one Cond, so each iteration is two handoffs and is mostly the scheduler |
 | `note_cycle` | Go's `sync.WaitGroup` cycle | Close the gate, open it, walk through it, with nobody waiting, which is the case a scheduler hits most |
 | `note_pingpong` | Go's unbuffered channel | A real handoff between two threads, against the same handoff between two goroutines, which is the gap the scheduler exists to close |
 | `thread_start_join` | Go's `go` plus a `WaitGroup` | A clone syscall and a stack from the kernel, against a few hundred bytes from a free list |
@@ -444,6 +447,8 @@ Running them pinned found something anyway. With four Ps on one core burrow was 
 [results/server2-2026-09-21-once.txt](results/server2-2026-09-21-once.txt) has `once_func_call` at 2.70 against 5.34 and `once_value_get` at 4.06 against 5.22, and the reason is the shape rather than the speed. Go's `OnceFunc` and `OnceValue` return closures, so calling one is an indirect call through a function value that the collector owns. burrow's are structs the caller declares, with the state inline and no allocation anywhere, so the call is direct and the fast path is a load and a branch. That is a real difference and it is also a fair one to point out in both directions: Go's version composes without the caller having to find somewhere to put the state, and burrow's does not.
 
 `once_do` is 0.91 against 0.47, which is the one row here that looks like a loss and is not. Both sides are a single load, a test and a branch. The loop gcc builds around burrow's has two taken branches per iteration and most cores retire one taken branch a cycle, which accounts for the whole gap on a body that is otherwise one instruction. A row where the loop is larger than the thing being measured is a row to read as "free on both sides", and that is what it says.
+
+`Cond` is the clearest split between the two halves of a benchmark so far. In [results/server2-2026-09-21-cond.txt](results/server2-2026-09-21-cond.txt) the two empty rows are level, `cond_signal_empty` at 4.06 nanoseconds against 4.21 and `cond_broadcast_empty` at 4.16 against 4.52, which is what two atomic loads and a compare cost and is the same code on both sides. `cond_ping_pong` is 268.20 against 590.20, and none of that is the Cond. Each iteration is two handoffs, a park and an unpark each way, so what the row measures is the scheduler with a condition variable wrapped round it, and burrow's goroutines being cheaper to park and start again is the same result `wait_group_go_wait` and `note_pingpong` give.
 
 Everything else arrives as the packages do.
 
