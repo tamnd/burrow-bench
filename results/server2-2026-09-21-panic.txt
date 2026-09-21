@@ -1,0 +1,24 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      b4ca8ce-dirty
+pinned     cpu 5 with taskset
+statistic  min of 9 runs
+filter     panic
+date       2026-09-21 07:29:45Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+panic_try_empty                   17.25      37%         6.10      19%     2.83x
+panic_caught                      51.29      12%       380.40      37%     0.13x
+panic_caught_scopes              104.33      28%       703.50      62%     0.15x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

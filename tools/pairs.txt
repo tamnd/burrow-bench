@@ -180,3 +180,12 @@ defer_direct             DeferDirect
 defer_four               DeferFour
 defer_eight              DeferEight
 defer_loop_ten           DeferLoopTen
+
+# panic. panic_try_empty pairs with a Go function whose deferred closure calls
+# recover and finds nothing, which is not the same shape and cannot be: Go pays
+# for recovery in the defer and burrow pays for it in the block. Each row is the
+# language's own idiom for the job rather than two spellings of one thing, which
+# is the trade docs/guides/panic.md describes in burrow's tree.
+panic_try_empty          PanicTryEmpty
+panic_caught             PanicCaught
+panic_caught_scopes      PanicCaughtScopes

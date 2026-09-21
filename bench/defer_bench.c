@@ -6,9 +6,10 @@
  * writing it as a defer. Everything else here is that question asked with more
  * calls in the scope.
  *
- * defer_four fills the four calls a scope holds in the caller's frame and
- * defer_eight goes past them, so the gap between those two rows is the one
- * allocation a scope makes when it runs out of room, spread over eight calls.
+ * defer_four and defer_eight are the same question with more calls in the
+ * scope. A scope holds eight in the caller's frame and asks the heap for room
+ * past that, which is the number Go's compiler stops open-coding at, and it
+ * held four until this file said what the fifth one cost.
  *
  * One asymmetry to know about before reading the ratios, and it is not a
  * measurement error. A Go defer of a named function is open-coded into the
@@ -90,7 +91,8 @@ BENCH(defer_direct) {
     bench_keep_u64(ticks);
 }
 
-/* Four is what a scope holds without asking anybody for memory. */
+/* Four, which is half of what a scope holds without asking anybody for
+ * memory. */
 BENCH(defer_four) {
     BENCH_LOOP(b) {
         BURROW_SCOPE {
@@ -105,10 +107,11 @@ BENCH(defer_four) {
     bench_keep_u64(ticks);
 }
 
-/* Eight is four in the frame and four in one allocation, which is freed before
- * the scope returns. Against defer_four this is what running out of room costs,
- * and against Go it is a row where Go is doing the same thing: a function with
- * more defers in it than the compiler will open-code puts them on the heap. */
+/* Eight, which is the last one a scope holds in the frame. It used to be four
+ * in the frame and four in an allocation, and the ninety eight nanoseconds
+ * between this row and the one above it is what moved the number. Against Go it
+ * is still a row worth having: eight is where Go's compiler stops open-coding
+ * too, and past that Go puts a record per deferred call on its heap. */
 BENCH(defer_eight) {
     BENCH_LOOP(b) {
         BURROW_SCOPE {

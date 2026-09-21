@@ -98,7 +98,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, and defer.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, defer, and panic.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -252,10 +252,13 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `select_pingpong` | the same in Go | A volley where all four operations are selects rather than bare channel operations |
 | `defer_one` | Go's `defer` | One scope with one deferred call in it, which is the shape nearly every defer has |
 | `defer_direct` | Go's call with no `defer` | The same call written at the bottom of the block by hand, so the gap between this row and the one above it is the feature |
-| `defer_four` | the same in Go | Four calls, which is what a burrow scope holds without asking anybody for memory |
-| `defer_eight` | the same in Go | Eight, which is past the four in the frame, so this row carries the one allocation a scope makes |
+| `defer_four` | the same in Go | Four calls, which is half of what a burrow scope holds without asking anybody for memory |
+| `defer_eight` | the same in Go | Eight, which is the last one a scope holds in the frame, and the number Go's compiler stops open-coding at |
 | `defer_scope_empty` | nothing | A scope with nothing deferred in it, which is what an early error return out of a function with a scope pays |
 | `defer_loop_ten` | the same in Go | Ten turns of a loop with a defer in the body, which is the one place the two languages deliberately do different things |
+| `panic_try_empty` | Go's deferred `recover` that finds nothing | A guarded call that does not panic, which is every request that goes fine, and the row that decides whether guarding is affordable |
+| `panic_caught` | the same in Go | The same block with a panic in it and nothing in the way, so the gap from the row above is what going wrong costs |
+| `panic_caught_scopes` | the same in Go | Three frames deep with a deferred call in each, which is the shape a real panic has, since the reason to unwind is that there is cleanup to run |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -380,6 +383,14 @@ The defer rows are new, two of them said burrow was slower, and one of those two
 A scope holds eight now, which is the same number Go's compiler open-codes, and the trade is sixty four more bytes in a stack frame against a trip through the allocator. The bytes are free in time because that array is deliberately never initialised. [results/server2-2026-09-21-defer-eight.txt](results/server2-2026-09-21-defer-eight.txt) is the same table afterwards: `defer_eight` is 55.29 against Go's 30.75, so the ratio went from 4.20x to 1.80x, and every other row in the group sat still, which is what a change that only removes an allocation should do.
 
 `defer_loop_ten` is 144.05 against Go's 257.10 and it is the one row here that is not the same work on both sides, which is the point of it. burrow puts the scope inside the loop body, so each turn runs its own call and nothing accumulates. Go holds all ten until the function returns, because a defer in a loop is never open-coded, so it allocates ten records. The ratio is a fact about the two designs rather than about the two implementations, and the reason the row exists is that this is the single place where burrow's defer deliberately does something Go's does not.
+
+The panic rows are the newest, and they are the third case where a benchmark changed the library before the feature shipped. [results/server2-2026-09-21-panic.txt](results/server2-2026-09-21-panic.txt) is the table.
+
+`panic_caught` is 51.29 nanoseconds against Go's 380.40, and `panic_caught_scopes`, which puts three frames and three deferred calls in the way, is 104.33 against 703.50. Those are the two rows that matter to anybody deciding whether a panic is affordable, and they are seven times cheaper than Go. The reason is not cleverness, it is that there is less to do. Go's panic allocates a record, walks the stack through the runtime's own unwinder, and builds the information a traceback needs whether or not anybody will print one. burrow walks a linked list of open scopes, calls what is on them, copies thirty two bytes and jumps. It will get slower when the stack walker lands and the panic starts carrying a trace, and the honest thing to say is that this is the number for a panic without one.
+
+`panic_try_empty` is 17.25 against Go's 6.10 and it is the row burrow loses, which is the right way round. Go pays for recovery in the defer and burrow pays for it in the block, so Go's cost lands on every function with a defer in it and burrow's lands only where somebody catches something. About ten of those seventeen nanoseconds are the `setjmp` itself and the rest is the same goroutine lookup `defer_scope_empty` pays, which is the performance item already open against defer and which will move both rows when it is done.
+
+The thing this group actually changed is not in the table, because it was fixed before the first result file was written. The first macOS run had `panic_try_empty` at 117.52 nanoseconds, against 8.01 for the same block today. C says nothing about whether `setjmp` saves the signal mask and every libc answers differently: glibc does not, so `setjmp` there is a dozen stores, and macOS and the BSDs do, so `setjmp` there is a `sigprocmask` and a `sigprocmask` is a system call. A five line microbenchmark put macOS `setjmp` at 139.90 nanoseconds against 2.52 for `_setjmp`, which is the POSIX pair that never touches the mask. burrow uses that pair on the systems that save the mask, which is macOS and the BSDs, since a panic does not run in a signal handler and has no mask to put back. Everywhere else keeps plain `setjmp`, and not out of timidity: glibc declares `_setjmp` under a strict C11 compiler and does not declare `_longjmp`, so asking for the pair on Linux is a build failure in exchange for nothing, because there the two names are the same code. Fifty five times on one of three platforms, and nothing about the feature on the other two would have hinted at it.
 
 Everything else arrives as the packages do.
 
