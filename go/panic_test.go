@@ -10,6 +10,11 @@
 // which is the shape a real panic has, since the reason to unwind rather than
 // exit is that there is cleanup to run on the way out.
 //
+// PanicRuntimeError is the same shape again with an index out of range instead
+// of a call to panic, and the recover asks whether what it caught is a
+// runtime.Error, which is what a handler that means to treat the runtime's
+// mistakes differently from its own actually writes.
+//
 // These are not two spellings of one implementation and should not be read as
 // if they were. Go recovers inside a deferred closure, which is the only way Go
 // spells it, and burrow recovers in a catch block, which is the only way burrow
@@ -25,7 +30,10 @@
 
 package bench
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+)
 
 var panicTicks uint64
 
@@ -96,6 +104,35 @@ func BenchmarkPanicCaught(b *testing.B) {
 func BenchmarkPanicCaughtScopes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		panicCaughtScopes()
+	}
+
+	sinkU64 = panicTicks
+}
+
+// One of the runtime's own checks, caught and identified. The index and the
+// slice are package level so that the compiler cannot prove the index is out
+// of range and refuse to build this, and the handler reads the message rather
+// than only the type, to match what the burrow side does.
+var (
+	panicShort    = make([]byte, 3)
+	panicBadIndex = 5
+)
+
+func panicRuntimeError() {
+	defer func() {
+		if r := recover(); r != nil {
+			if re, ok := r.(runtime.Error); ok {
+				panicTicks += uint64(len(re.Error()))
+			}
+		}
+	}()
+
+	_ = panicShort[panicBadIndex]
+}
+
+func BenchmarkPanicRuntimeError(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		panicRuntimeError()
 	}
 
 	sinkU64 = panicTicks
