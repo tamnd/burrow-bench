@@ -166,3 +166,17 @@ select_uncontended       SelectUncontended
 select_default           SelectDefault
 select_eight_arms        SelectEightArms
 select_pingpong          SelectPingpong
+
+# defer. defer_one against defer_direct is the row that says what the feature
+# costs, and the same pair is on the Go side. Two rows have no pair and are
+# missing here for that reason: defer_scope_empty, because a Go function with
+# no defer in it has no defer to measure, and defer_loop_ten pairs with a loop
+# that means something different on each side, which is written out at the top
+# of both files. Go's compiler knows which function a defer will call and calls
+# it directly, where burrow's defer is a function value and its call is
+# indirect, so these rows compare the feature as each language offers it.
+defer_one                DeferOne
+defer_direct             DeferDirect
+defer_four               DeferFour
+defer_eight              DeferEight
+defer_loop_ten           DeferLoopTen

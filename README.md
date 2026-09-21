@@ -96,7 +96,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, and the timers built on that.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, and defer.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -244,6 +244,16 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `timer_reset_stop_deep` | the same with a thousand others in the heap | Whether the cost of a deadline grows with the number of connections, which it should not |
 | `timer_sleep_1ms` | Go's `time.Sleep` | Read as latency rather than throughput, since the number worth having is the overshoot past a millisecond |
 | `timer_fire_burst` | the same in Go | A thousand timers due at once and the wait until every callback has run, which is a heap pop and a goroutine launch each |
+| `select_uncontended` | Go's two arm `select` | A select over two arms with one of them ready, which is a channel operation with a decision on the front of it |
+| `select_default` | Go's `select` with a `default` | Two arms and a default with nothing ready, which is a poll loop's cost per turn |
+| `select_eight_arms` | the same in Go | Eight arms with the ready one moving around the ring, which is where the lock ordering shows up |
+| `select_pingpong` | the same in Go | A volley where all four operations are selects rather than bare channel operations |
+| `defer_one` | Go's `defer` | One scope with one deferred call in it, which is the shape nearly every defer has |
+| `defer_direct` | Go's call with no `defer` | The same call written at the bottom of the block by hand, so the gap between this row and the one above it is the feature |
+| `defer_four` | the same in Go | Four calls, which is what a burrow scope holds without asking anybody for memory |
+| `defer_eight` | the same in Go | Eight, which is past the four in the frame, so this row carries the one allocation a scope makes |
+| `defer_scope_empty` | nothing | A scope with nothing deferred in it, which is what an early error return out of a function with a scope pays |
+| `defer_loop_ten` | the same in Go | Ten turns of a loop with a defer in the body, which is the one place the two languages deliberately do different things |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -356,6 +366,16 @@ The thing to take from that pair is not the ratio, it is that they are the same 
 `goroutine_handoff` is the floor under the ping pong rows and it is 163.35 on the same machine, so the channel costs about 70 nanoseconds on top of the park and ready it is built from. That is the lock on both channels, two waiter records, the direct copy, and the queue work, paid twice per volley. It is also the number to watch: `goroutine_handoff` volleys through a one waiter gate rather than a channel, so if that 70 nanosecond gap grows it is the channel getting heavier and not the scheduler.
 
 One row did not do what its comment predicted. `chan_pingpong_buffered` was supposed to be cheaper than the unbuffered one, on the grounds that a send into an empty one deep buffer never blocks, and it is not: 232.74 against 231.98, which is the same number twice. Go does the same thing, 566.30 against 549.20. The reason is that a volley is symmetric. The send does not block, so the receive on the other side does instead, and the two goroutines still take turns exactly as often. A buffer only buys something when one side can run ahead, which is what `chan_prodcons` measures and why that row is six times cheaper. The comment in the benchmark has been left as it was written, because a prediction that turned out wrong is more useful in the file than a prediction quietly corrected afterwards.
+
+The select rows are the second case where a benchmark changed the library. [results/server2-2026-09-19-select.txt](results/server2-2026-09-19-select.txt) is the table as it was when they landed, and `select_eight_arms` was 549.81 nanoseconds against Go's 417.70. burrow took the channel locks by walking the case list for the lowest address above the last one it locked, which needs no storage and reads better than a sort and is quadratic, and the argument for it was that a real select has two or three arms. Eight arms said the argument was wrong: a quarter of the call was in the unlock. burrow sorts the arms now, as Go does, and [results/server2-2026-09-21-select.txt](results/server2-2026-09-21-select.txt) has that row at 310.94 against 413.70. The row is kept at eight arms so that anybody who revisits the decision has to answer it again.
+
+The defer rows are new and two of them say burrow is slower. [results/server2-2026-09-21-defer.txt](results/server2-2026-09-21-defer.txt) is the table, and the first thing to look at is `defer_direct`, at 2.39 nanoseconds against Go's 2.29. That is the same call on both sides with no defer anywhere near it, so the two baselines agree and every other number in the group can be read against them.
+
+`defer_one` is 13.54 against Go's 3.90. Go's compiler open-codes a defer of a named function into the frame, so its one deferred call is a flag byte, a stored argument and a direct call at the return, and it is hard to beat by design. burrow's is a function value in a scope on a chain, and the chain is the part worth looking at, because `defer_scope_empty` is 8.76 nanoseconds on its own. Two thirds of what a defer costs here is opening and closing the scope it lives in, and the thing that costs is asking which goroutine is running so the scope can go on its chain. That is the first of the two things to chase.
+
+`defer_eight` is the second and the louder one: 126.99 nanoseconds against Go's 30.27, where `defer_four` just above it is 29.27 against 15.17. Four extra deferred calls cost 98 nanoseconds, which is not four calls, it is one `malloc` and one `free`. A burrow scope holds four calls in the caller's frame and asks the heap for room past that, and eight is past that. Go stops open-coding at eight too and falls back to a record per call on its heap, and still comes out four times cheaper, so this is not a gap that Go's compiler explains. Holding more calls in the frame costs stack space and no time, since the array is deliberately never initialised, and that is the change this row is asking for.
+
+`defer_loop_ten` is 144.05 against Go's 257.10 and it is the one row here that is not the same work on both sides, which is the point of it. burrow puts the scope inside the loop body, so each turn runs its own call and nothing accumulates. Go holds all ten until the function returns, because a defer in a loop is never open-coded, so it allocates ten records. The ratio is a fact about the two designs rather than about the two implementations, and the reason the row exists is that this is the single place where burrow's defer deliberately does something Go's does not.
 
 Everything else arrives as the packages do.
 
