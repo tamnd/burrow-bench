@@ -33,6 +33,7 @@ void register_sync_atomic_benchmarks(void);
 void register_sync_benchmarks(void);
 void register_timer_benchmarks(void);
 void register_utf8_benchmarks(void);
+void register_waitgroup_benchmarks(void);
 
 int main(int argc, char **argv) {
     register_chan_benchmarks();
@@ -56,5 +57,6 @@ int main(int argc, char **argv) {
     register_sync_benchmarks();
     register_timer_benchmarks();
     register_utf8_benchmarks();
+    register_waitgroup_benchmarks();
     return bench_main(argc, argv);
 }

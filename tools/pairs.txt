@@ -225,3 +225,20 @@ rw_mutex_lock_unlock     RWMutexLockUnlock
 rw_mutex_r_lock_unlock   RWMutexRLockRUnlock
 mutex_contended          MutexContended
 rw_mutex_contended_read  RWMutexContendedRead
+
+# sync.WaitGroup and the sync.Once family. The counter rows are another true
+# pair, same state word and same misuse checks on both sides. The Once rows are
+# the already ran path, which is one atomic load and a branch, and that is the
+# number that matters since the first call happens once in the life of a
+# program.
+#
+# The OnceFunc and OnceValue rows are the least like for like in this block.
+# Go's return closures the collector owns and burrow's are structs the caller
+# declares, so the two sides are paying for different things and the absolute
+# figures are worth more than the ratio.
+wait_group_add_done      WaitGroupAddDone
+wait_group_wait_empty    WaitGroupWaitEmpty
+wait_group_go_wait       WaitGroupGoWait
+once_do                  OnceDo
+once_func_call           OnceFuncCall
+once_value_get           OnceValueGet
