@@ -189,3 +189,12 @@ defer_loop_ten           DeferLoopTen
 panic_try_empty          PanicTryEmpty
 panic_caught             PanicCaught
 panic_caught_scopes      PanicCaughtScopes
+
+# Stack walking. Both sides recurse ten deep and then ask for the frames, and
+# both ask twice: once with room for everything on the stack and once with room
+# for two, which is what a logger wants. Go's walk does more than burrow's,
+# because it consults an inline table per frame and reports logical frames
+# rather than physical ones, and burrow will have that table when it has a
+# symbol table to put it in.
+callers_ten              CallersTen
+callers_two              CallersTwo

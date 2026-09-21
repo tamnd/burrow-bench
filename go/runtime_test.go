@@ -60,3 +60,43 @@ func BenchmarkGoroutineSwitch(b *testing.B) {
 	b.StopTimer()
 	close(done)
 }
+
+// The trace pair. Ten frames of recursion and then a walk, which is what the C
+// side does at the same depth with the same buffer.
+//
+// runtime.Callers does more than burrow's does, and the difference is worth
+// knowing before reading the two numbers. Go follows the same frame pointers
+// and then consults its inline table for each frame, so a single physical frame
+// can report as several logical ones and the answer is closer to what a person
+// wants. burrow has no such table yet, so it reports physical frames and its
+// number is lower for a reason that will stop being true.
+const traceDepth = 10
+
+//go:noinline
+func traceDown(depth int, pcs []uintptr) int {
+	if depth > 0 {
+		n := traceDown(depth-1, pcs)
+		// Used after the call so the recursion cannot become a jump, which
+		// would take a frame out of the stack this is trying to have.
+		return n
+	}
+	return runtime.Callers(0, pcs)
+}
+
+func BenchmarkCallersTen(b *testing.B) {
+	pcs := make([]uintptr, 32)
+
+	for i := 0; i < b.N; i++ {
+		traceSink = traceDown(traceDepth, pcs)
+	}
+}
+
+func BenchmarkCallersTwo(b *testing.B) {
+	pcs := make([]uintptr, 2)
+
+	for i := 0; i < b.N; i++ {
+		traceSink = traceDown(traceDepth, pcs)
+	}
+}
+
+var traceSink int
