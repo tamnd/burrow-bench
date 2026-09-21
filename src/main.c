@@ -33,6 +33,7 @@ void register_slice_benchmarks(void);
 void register_str_benchmarks(void);
 void register_sync_atomic_benchmarks(void);
 void register_sync_benchmarks(void);
+void register_sync_map_benchmarks(void);
 void register_timer_benchmarks(void);
 void register_utf8_benchmarks(void);
 void register_waitgroup_benchmarks(void);
@@ -59,6 +60,7 @@ int main(int argc, char **argv) {
     register_str_benchmarks();
     register_sync_atomic_benchmarks();
     register_sync_benchmarks();
+    register_sync_map_benchmarks();
     register_timer_benchmarks();
     register_utf8_benchmarks();
     register_waitgroup_benchmarks();
