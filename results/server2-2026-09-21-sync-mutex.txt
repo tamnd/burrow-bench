@@ -1,0 +1,26 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      b4ca8ce-dirty
+pinned     cpu 5 with taskset
+statistic  min of 9 runs
+filter     lock_unlock
+date       2026-09-21 14:06:38Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+mutex_lock_unlock                 11.28       5%        11.37       4%     0.99x
+mutex_try_lock_unlock             11.12      12%        10.81       4%     1.03x
+mutex_locker_lock_unlock          11.03       4%        11.39       4%     0.97x
+rw_mutex_lock_unlock              24.46       9%        23.47       5%     1.04x
+rw_mutex_r_lock_unlock            11.41       7%        11.49       5%     0.99x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

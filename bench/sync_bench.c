@@ -21,9 +21,10 @@
  * from a free list.
  *
  * These use the internal headers, which is why the names carry the burrow
- * double underscore. burrow/sync.h will be the public version and it is not
- * written yet. When it is, these rows stay and rows for it get added, because
- * the cost of the layer on top is worth knowing separately.
+ * double underscore. The public locks are in burrow/sync.h and their rows are
+ * in bench/mutex_bench.c, kept separate because the cost of the layer on top is
+ * worth knowing on its own. A note blocks a thread and a sync.Mutex parks a
+ * goroutine, so the two files are not two measurements of the same thing.
  *
  * Copyright 2026 The burrow Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style licence that can be found

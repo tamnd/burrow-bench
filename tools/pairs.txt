@@ -208,3 +208,20 @@ panic_caught_scopes      PanicCaughtScopes
 # symbol table to put it in.
 callers_ten              CallersTen
 callers_two              CallersTwo
+
+# sync.Mutex and sync.RWMutex. The closest pairing in this file, because
+# burrow's mutex is a port of Go's rather than a lock that behaves like it: same
+# state word, same spin budget, same millisecond before starvation mode, same
+# handoff. A gap on any of these rows is a gap in the port.
+#
+# The uncontended rows are a compare and swap and nothing else. The contended
+# ones are four goroutines on an empty critical section, which is the shape that
+# starvation mode exists for, and the absolute number belongs to the machine
+# rather than to either side.
+mutex_lock_unlock        MutexLockUnlock
+mutex_try_lock_unlock     MutexTryLockUnlock
+mutex_locker_lock_unlock  MutexLockerLockUnlock
+rw_mutex_lock_unlock     RWMutexLockUnlock
+rw_mutex_r_lock_unlock   RWMutexRLockRUnlock
+mutex_contended          MutexContended
+rw_mutex_contended_read  RWMutexContendedRead

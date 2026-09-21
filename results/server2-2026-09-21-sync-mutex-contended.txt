@@ -1,0 +1,23 @@
+machine    vmi3112167
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      b4ca8ce-dirty
+pinned     no
+statistic  min of 9 runs
+filter     mutex_contended
+date       2026-09-21 14:08:45Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+mutex_contended                   23.94      22%        27.56       5%     0.87x
+rw_mutex_contended_read           21.02      31%        23.15      26%     0.91x
+
+not paired with a Go benchmark
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

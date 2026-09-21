@@ -98,7 +98,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, defer, and panic.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, defer, panic, and the locks in `sync`.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -218,6 +218,13 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `sync_atomic_pointer_store` | Go's `atomic.Pointer.Store` | A sequentially consistent store, which is an exchange on x86 and a store release on arm64 |
 | `sync_atomic_value_load` | Go's `atomic.Value.Load` | Two words published without a lock, so a load is a load, a branch and a load |
 | `sync_atomic_value_store` | Go's `atomic.Value.Store` | Every store after the first one, which is the path a configuration swap takes |
+| `mutex_lock_unlock` | Go's `sync.Mutex` | A lock nobody holds, which is one compare and swap and is the case nearly every lock in a running program finds |
+| `mutex_try_lock_unlock` | Go's `Mutex.TryLock` | Reads the state before the compare and swap, so it is a dearer lock rather than a cheaper one |
+| `mutex_locker_lock_unlock` | Go's `sync.Locker` | The same lock behind an indirect call, which is what code that takes a Locker instead of a Mutex pays |
+| `rw_mutex_lock_unlock` | Go's `RWMutex.Lock` | The write side, which goes through the inner mutex before it announces itself to the readers |
+| `rw_mutex_r_lock_unlock` | Go's `RWMutex.RLock` | The read side with no writer in sight, which is one add in and one add out |
+| `mutex_contended` | the same in Go | Four goroutines on four Ps and an empty critical section, which is the shape starvation mode exists for |
+| `rw_mutex_contended_read` | the same in Go | Four readers and no writer, which is the honest answer to whether a read lock is free |
 | `note_cycle` | Go's `sync.WaitGroup` cycle | Close the gate, open it, walk through it, with nobody waiting, which is the case a scheduler hits most |
 | `note_pingpong` | Go's unbuffered channel | A real handoff between two threads, against the same handoff between two goroutines, which is the gap the scheduler exists to close |
 | `thread_start_join` | Go's `go` plus a `WaitGroup` | A clone syscall and a stack from the kernel, against a few hundred bytes from a free list |
@@ -415,6 +422,16 @@ This group also produced the largest single fix in the repository so far, and it
 `panic_try_empty` is 17.25 against Go's 6.10 and it is the row burrow loses, which is the right way round. Go pays for recovery in the defer and burrow pays for it in the block, so Go's cost lands on every function with a defer in it and burrow's lands only where somebody catches something. About ten of those seventeen nanoseconds are the `setjmp` itself and the rest is the same goroutine lookup `defer_scope_empty` pays, which is the performance item already open against defer and which will move both rows when it is done.
 
 The thing this group actually changed is not in the table, because it was fixed before the first result file was written. The first macOS run had `panic_try_empty` at 117.52 nanoseconds, against 8.01 for the same block today. C says nothing about whether `setjmp` saves the signal mask and every libc answers differently: glibc does not, so `setjmp` there is a dozen stores, and macOS and the BSDs do, so `setjmp` there is a `sigprocmask` and a `sigprocmask` is a system call. A five line microbenchmark put macOS `setjmp` at 139.90 nanoseconds against 2.52 for `_setjmp`, which is the POSIX pair that never touches the mask. burrow uses that pair on the systems that save the mask, which is macOS and the BSDs, since a panic does not run in a signal handler and has no mask to put back. Everywhere else keeps plain `setjmp`, and not out of timidity: glibc declares `_setjmp` under a strict C11 compiler and does not declare `_longjmp`, so asking for the pair on Linux is a build failure in exchange for nothing, because there the two names are the same code. Fifty five times on one of three platforms, and nothing about the feature on the other two would have hinted at it.
+
+The mutex rows are the closest pairing in the repository, because burrow's `sync.Mutex` is a port of Go's rather than a lock that behaves like it. Same state word, same spin budget, same millisecond before starvation mode, same handoff. So a gap on one of these rows is a gap in the port and not a difference of design, which makes them unusually easy to read.
+
+Pinned, on server2, [results/server2-2026-09-21-sync-mutex.txt](results/server2-2026-09-21-sync-mutex.txt) has the uncontended rows level with Go within the noise: `mutex_lock_unlock` at 11.28 nanoseconds against 11.37, `mutex_try_lock_unlock` at 11.12 against 10.81, `mutex_locker_lock_unlock` at 11.03 against 11.39, `rw_mutex_r_lock_unlock` at 11.41 against 11.49, and `rw_mutex_lock_unlock` at 24.46 against 23.47. The write lock costing twice the read lock is not a surprise, since it takes the inner mutex first and then announces itself to the readers.
+
+Those rows are level because of a change the benchmark asked for. The first measurement had `mutex_lock_unlock` at 1.20x Go and `mutex_locker_lock_unlock` behind it as well, and the reason was structural rather than algorithmic: Go's compiler inlines the fast path of `Lock` into the caller, and burrow's lived in `libburrow.a` behind a function call. A lock nobody holds is one instruction, and putting a call around one instruction roughly doubles it. The fast paths are `static inline` in `burrow/sync.h` now with everything past the first compare and swap still out of line, which is the shape `sync/atomic.h` already used and the shape Go's own mutex has. The ratio went from 1.20x to 0.99x and nothing else moved.
+
+The contended rows are in [results/server2-2026-09-21-sync-mutex-contended.txt](results/server2-2026-09-21-sync-mutex-contended.txt) and they are deliberately not pinned, because four goroutines pinned to one core are not four goroutines contending, they are four goroutines taking turns. Unpinned, `mutex_contended` is 23.94 nanoseconds against Go's 27.56 and `rw_mutex_contended_read` is 21.02 against 23.15. Both spreads are above twenty percent, which is what a contention benchmark looks like on a shared machine, so read those two as level rather than as a win.
+
+Running them pinned found something anyway. With four Ps on one core burrow was 1.74x Go, and the reason was that `burrow__thread_ncpu` asked `sysconf` how many processors the machine has rather than asking how many this process may use. Under `taskset`, and inside a container with a cpuset, those are different numbers. burrow was reading six, concluding there was somewhere else for the lock holder to be running, and spinning on the one core it shared with it. It reads the affinity mask now, the same as Go does, and the row came back to where the unpinned one already was. The bug was worth more than the row: it also meant `GOMAXPROCS` defaulted to a thread per core on a machine where two cores were allowed, which is the single most common way to deploy a container.
 
 Everything else arrives as the packages do.
 
