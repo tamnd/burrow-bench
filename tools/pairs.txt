@@ -109,6 +109,16 @@ atomic_add_u32           AtomicAddU32
 atomic_load_u64          AtomicLoadU64
 atomic_store_u64         AtomicStoreU64
 atomic_cas_u64           AtomicCASU64
+sync_atomic_add_int64    AtomicAddInt64
+sync_atomic_load_int64   AtomicLoadInt64
+sync_atomic_int64_add    AtomicInt64Add
+sync_atomic_int64_load   AtomicInt64Load
+sync_atomic_int64_cas    AtomicInt64CAS
+sync_atomic_bool_load    AtomicBoolLoad
+sync_atomic_pointer_load AtomicPointerLoad
+sync_atomic_pointer_store AtomicPointerStore
+sync_atomic_value_load   AtomicValueLoad
+sync_atomic_value_store  AtomicValueStore
 note_cycle               NoteCycle
 note_pingpong            NotePingpong
 thread_start_join        ThreadStartJoin
