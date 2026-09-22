@@ -276,4 +276,8 @@ context_with_cancel_nested  ContextWithCancelNested
 context_with_timeout     ContextWithTimeout
 context_with_timeout_expired  ContextWithTimeoutExpired
 context_with_value       ContextWithValue
+context_cause            ContextCause
+context_with_cancel_cause  ContextWithCancelCause
+context_without_cancel   ContextWithoutCancel
+context_after_func       ContextAfterFunc
 context_cancel_tree      ContextCancelTree

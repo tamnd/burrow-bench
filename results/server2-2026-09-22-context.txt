@@ -2,31 +2,35 @@ machine    vmi3112167
 os         Linux x86_64
 cpu        AMD EPYC Processor (with IBPB)
 compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
-burrow     v0.0.24-3-gc1f674a
-bench      2258fea-dirty
+burrow     v0.0.24-6-g6048c78
+bench      d72ecec
 pinned     cpu 5 with taskset
 statistic  min of 21 runs
 filter     context
-date       2026-09-22 05:24:48Z
+date       2026-09-22 06:54:43Z
 go         go1.26.5
 
 benchmark                     burrow ns   spread        go ns   spread    ratio
 -------------------------- ------------ -------- ------------ -------- --------
-mcontext_switch                   30.47      47%       675.50      27%     0.05x
-context_done                       3.62      24%         4.69      38%     0.77x
-context_err_live                  11.91       8%         3.61      35%     3.30x
-context_value_shallow             16.92      49%         7.34      46%     2.31x
-context_value_deep               122.93      16%        49.79      24%     2.47x
-context_value_miss               123.86      54%        80.53      11%     1.54x
-context_with_cancel              234.81      35%       237.00      23%     0.99x
-context_with_cancel_nested       270.64      22%       395.20      16%     0.68x
-context_with_timeout             564.01      54%       735.80      19%     0.77x
-context_with_timeout_expired       274.44      35%       431.30      15%     0.64x
-context_with_value                47.54      40%        68.85      33%     0.69x
-context_cancel_tree            12681.36      60%     31973.00      45%     0.40x
+mcontext_switch                   29.97      17%       652.00      18%     0.05x
+context_done                       4.14      31%         4.93      22%     0.84x
+context_err_live                  12.71      38%         3.57      31%     3.56x
+context_value_shallow             19.47      70%         7.58      36%     2.57x
+context_value_deep               117.83     143%        48.55      23%     2.43x
+context_value_miss               116.64     112%        81.85      13%     1.43x
+context_with_cancel              240.03     170%       239.20      12%     1.00x
+context_with_cancel_nested       289.13      90%       388.90      17%     0.74x
+context_with_timeout             619.41     101%       771.30      14%     0.80x
+context_with_timeout_expired       321.02      33%       411.00      17%     0.78x
+context_with_value                51.31      35%        70.44      54%     0.73x
+context_cause                     18.08      26%        36.84      24%     0.49x
+context_with_cancel_cause        204.22      18%       233.60      23%     0.87x
+context_without_cancel            45.64      18%        61.32      19%     0.74x
+context_after_func               318.75      21%       455.70      65%     0.70x
+context_cancel_tree            13190.99      19%     32115.00      16%     0.41x
 
 not paired with a Go benchmark
-mcontext_make                      8.78      19%
+mcontext_make                      8.64      26%
 
 Minimum of the runs, not the median, so these survive a busy machine
 better than the spread column next to them suggests. A spread in the

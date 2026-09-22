@@ -39,6 +39,7 @@
 
 #include "burrow/context.h"
 #include "burrow/core.h"
+#include "burrow/error.h"
 #include "burrow/func.h"
 #include "burrow/iface.h"
 #include "burrow/mem.h"
@@ -240,7 +241,8 @@ static void value_miss_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        bench_keep(context_value(chain[DEPTH - 1], BURROW_ANY(&key_desc, &key_three)).t);
+        bench_keep(
+            context_value(chain[DEPTH - 1], BURROW_ANY(&key_desc, &key_three)).t);
     }
     bench_pause(b);
 
@@ -400,6 +402,132 @@ BENCH(context_with_cancel_nested) {
     run(b, with_cancel_nested_body);
 }
 
+/* ---------------------------------------------------------------- the causes
+ *
+ * The four entry points Go added in 1.20 and 1.21, which are the ones a program
+ * written today reaches for and the ones that were missing here until now.
+ *
+ * WithCancelCause is WithCancel with a second word written under the same lock
+ * at the same moment, so the row should sit on top of the WithCancel row and
+ * the difference between them is what carrying a reason costs. Cause is a walk
+ * up to the nearest cancellable node followed by that node's lock, which is the
+ * Err row plus the value walk rather than a third thing.
+ *
+ * WithoutCancel is a node that answers nothing to the cancel key, so it is one
+ * allocation on both sides and no channel and no list. It should be the
+ * cheapest constructor here.
+ *
+ * AfterFunc is measured on the path where the stop wins, because that is what a
+ * handler that finishes its work does and because the other path ends in a
+ * goroutine and would be measuring the scheduler. So the row is a node, a
+ * channel, the attach, the once, the detach and the frees. */
+
+BURROW_SENTINEL_ERROR(bench_reason, "bench: the reason");
+
+static void nothing(void *env) {
+    (void)env;
+}
+
+static void cause_body(void *arg) {
+    Bench *b = (Bench *)arg;
+    CancelCauseFunc cancel;
+    Context c =
+        context_with_cancel_cause(heap_allocator(), context_background(), &cancel);
+
+    if (BURROW_CONTEXT_IS_NIL(c))
+        return;
+
+    BURROW_CALLF(cancel, bench_reason);
+
+    bench_resume(b);
+    BENCH_LOOP(b) {
+        bench_keep(context_cause(c).vt);
+    }
+    bench_pause(b);
+
+    context_free(c);
+}
+
+BENCH(context_cause) {
+    run(b, cause_body);
+}
+
+static void with_cancel_cause_body(void *arg) {
+    Bench *b = (Bench *)arg;
+    Alloc *a = heap_allocator();
+    Context root = context_background();
+
+    bench_resume(b);
+    BENCH_LOOP(b) {
+        CancelCauseFunc cancel;
+        Context c = context_with_cancel_cause(a, root, &cancel);
+
+        bench_keep(c.data);
+        BURROW_CALLF(cancel, bench_reason);
+        context_free(c);
+    }
+    bench_pause(b);
+}
+
+BENCH(context_with_cancel_cause) {
+    run(b, with_cancel_cause_body);
+}
+
+static void without_cancel_body(void *arg) {
+    Bench *b = (Bench *)arg;
+    Alloc *a = heap_allocator();
+    CancelFunc parent_cancel;
+    Context parent = context_with_cancel(a, context_background(), &parent_cancel);
+
+    if (BURROW_CONTEXT_IS_NIL(parent))
+        return;
+
+    bench_resume(b);
+    BENCH_LOOP(b) {
+        Context c = context_without_cancel(a, parent);
+
+        bench_keep(c.data);
+        context_free(c);
+    }
+    bench_pause(b);
+
+    BURROW_CALLF0(parent_cancel);
+    context_free(parent);
+}
+
+BENCH(context_without_cancel) {
+    run(b, without_cancel_body);
+}
+
+static void after_func_body(void *arg) {
+    Bench *b = (Bench *)arg;
+    Alloc *a = heap_allocator();
+    CancelFunc parent_cancel;
+    Context parent = context_with_cancel(a, context_background(), &parent_cancel);
+
+    if (BURROW_CONTEXT_IS_NIL(parent))
+        return;
+
+    bench_resume(b);
+    BENCH_LOOP(b) {
+        StopFunc stop;
+        Context reg =
+            context_after_func(a, parent, BURROW_FN(Func, nothing, NULL), &stop);
+
+        bench_keep(reg.data);
+        bench_keep_u64((uint64_t)BURROW_CALLF0(stop));
+        context_free(reg);
+    }
+    bench_pause(b);
+
+    BURROW_CALLF0(parent_cancel);
+    context_free(parent);
+}
+
+BENCH(context_after_func) {
+    run(b, after_func_body);
+}
+
 /* ------------------------------------------------------------- the cancel
  *
  * One parent, sixty four children, and a cancel that has to reach all of them.
@@ -458,5 +586,9 @@ void register_context_benchmarks(void) {
     BENCH_RUN(context_with_timeout);
     BENCH_RUN(context_with_timeout_expired);
     BENCH_RUN(context_with_value);
+    BENCH_RUN(context_cause);
+    BENCH_RUN(context_with_cancel_cause);
+    BENCH_RUN(context_without_cancel);
+    BENCH_RUN(context_after_func);
     BENCH_RUN(context_cancel_tree);
 }

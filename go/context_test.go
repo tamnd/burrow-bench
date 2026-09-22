@@ -25,6 +25,7 @@ package bench
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -54,7 +55,11 @@ var (
 	sinkCancel   context.CancelFunc
 	sinkCtxDone  <-chan struct{}
 	sinkCtxError error
+	sinkCtxBool  bool
 )
+
+// The reason the cause rows cancel with, which is the C side's sentinel.
+var errBenchReason = errors.New("bench: the reason")
 
 // What it costs to ask for the done channel, which is the one every select on a
 // cancellation goes through. Go's is an atomic load and a branch into the slow
@@ -202,6 +207,63 @@ func BenchmarkContextWithValue(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sinkCtx = context.WithValue(root, keyOne, payload)
+	}
+}
+
+// The four entry points Go added in 1.20 and 1.21, which are the ones a program
+// written today reaches for.
+//
+// WithCancelCause is WithCancel with a second word written under the same lock
+// at the same moment, so the difference between the two rows is what carrying a
+// reason costs. Cause is a walk up to the nearest cancellable node followed by
+// that node's lock, so it is the Err row plus the value walk rather than a
+// third thing.
+//
+// WithoutCancel is one allocation on both sides and no channel and no list, so
+// it should be the cheapest constructor here.
+//
+// AfterFunc is measured on the path where the stop wins, because that is what a
+// handler that finishes its work does and because the other path ends in a
+// goroutine and would be measuring the scheduler.
+func BenchmarkContextCause(b *testing.B) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errBenchReason)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sinkCtxError = context.Cause(ctx)
+	}
+}
+
+func BenchmarkContextWithCancelCause(b *testing.B) {
+	root := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ctx, cancel := context.WithCancelCause(root)
+		sinkCtx = ctx
+		cancel(errBenchReason)
+	}
+}
+
+func BenchmarkContextWithoutCancel(b *testing.B) {
+	parent, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sinkCtx = context.WithoutCancel(parent)
+	}
+}
+
+func BenchmarkContextAfterFunc(b *testing.B) {
+	parent, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		stop := context.AfterFunc(parent, func() {})
+		sinkCtxBool = stop()
 	}
 }
 
