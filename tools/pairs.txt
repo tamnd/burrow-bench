@@ -281,3 +281,19 @@ context_with_cancel_cause  ContextWithCancelCause
 context_without_cancel   ContextWithoutCancel
 context_after_func       ContextAfterFunc
 context_cancel_tree      ContextCancelTree
+
+# The bubble. burrow's synctest is a port of Go's, so these are two
+# implementations of one design and the ratio means what it usually means.
+#
+# Two asymmetries are in the file headers rather than here because they need a
+# paragraph each. Go's rows count the setup inside the bubble where the C rows
+# exclude it, which is one channel against a b.N in the millions. And the Go
+# side opens its bubble with a zero value *testing.T, because 1.27 removed the
+# only entry point a benchmark could otherwise reach.
+synctest_run_empty         SynctestRunEmpty
+synctest_run_one_goroutine SynctestRunOneGoroutine
+synctest_wait_alone        SynctestWaitAlone
+synctest_wait_parked       SynctestWaitParked
+synctest_chan_pingpong     SynctestChanPingpong
+synctest_go                SynctestGo
+synctest_sleep             SynctestSleep
