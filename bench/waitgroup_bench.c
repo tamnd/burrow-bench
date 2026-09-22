@@ -86,7 +86,7 @@ static void go_wait_body(void *env) {
     bench_resume(b);
 
     BENCH_LOOP(b) {
-        wg = (SyncWaitGroup){0, 0};
+        wg = (SyncWaitGroup){0};
 
         for (int i = 0; i < WG_WORKERS; i++) {
             if (!sync_wait_group_go(&wg, BURROW_FN(Func, nothing, NULL)))
