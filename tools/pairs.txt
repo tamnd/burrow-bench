@@ -132,11 +132,11 @@ note_cycle               NoteCycle
 note_pingpong            NotePingpong
 thread_start_join        ThreadStartJoin
 thread_yield             ThreadYield
-context_switch           GoroutineSwitch
+mcontext_switch          GoroutineSwitch
 
 # GoroutineSwitch above and GoroutineHandoff below are two Go programs doing the
 # same thing at two levels, and they are paired that way on purpose.
-# context_switch is the bare stack switch with no scheduler in it and
+# mcontext_switch is the bare stack switch with no scheduler in it and
 # goroutine_handoff is the blocking handoff built on top of that switch, so the
 # distance between those two C rows is what the scheduler costs and the distance
 # between the two Go rows is the same thing measured in Go.
@@ -254,3 +254,26 @@ once_value_get           OnceValueGet
 cond_signal_empty        CondSignalEmpty
 cond_broadcast_empty     CondBroadcastEmpty
 cond_ping_pong           CondPingPong
+
+# context. The same tree with the same three operations on it, and two honest
+# differences. burrow makes the done channel when the context is made, because
+# context_done has no allocator and no way to report a failure, so the
+# WithCancel rows carry a channel Go's do not and the Done row is a load where
+# Go's is an atomic load and a branch. And burrow keeps the children in an
+# intrusive list where Go keeps a map, which is why the nested and the tree
+# rows are the interesting ones.
+#
+# The C side frees every node inside the loop and Go hands it to the collector,
+# so read the making rows next to Go's allocs per operation rather than on
+# their own.
+context_done             ContextDone
+context_err_live         ContextErrLive
+context_value_shallow    ContextValueShallow
+context_value_deep       ContextValueDeep
+context_value_miss       ContextValueMiss
+context_with_cancel      ContextWithCancel
+context_with_cancel_nested  ContextWithCancelNested
+context_with_timeout     ContextWithTimeout
+context_with_timeout_expired  ContextWithTimeoutExpired
+context_with_value       ContextWithValue
+context_cancel_tree      ContextCancelTree
