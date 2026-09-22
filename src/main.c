@@ -26,6 +26,7 @@ void register_mem_benchmarks(void);
 void register_mutex_benchmarks(void);
 void register_num_benchmarks(void);
 void register_panic_benchmarks(void);
+void register_preempt_benchmarks(void);
 void register_reclaim_benchmarks(void);
 void register_runtime_benchmarks(void);
 void register_sched_benchmarks(void);
@@ -56,6 +57,7 @@ int main(int argc, char **argv) {
     register_mutex_benchmarks();
     register_num_benchmarks();
     register_panic_benchmarks();
+    register_preempt_benchmarks();
     register_reclaim_benchmarks();
     register_runtime_benchmarks();
     register_sched_benchmarks();
