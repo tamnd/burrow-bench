@@ -15,6 +15,7 @@
 void register_chan_benchmarks(void);
 void register_clock_benchmarks(void);
 void register_cond_benchmarks(void);
+void register_context_benchmarks(void);
 void register_defer_benchmarks(void);
 void register_error_benchmarks(void);
 void register_func_benchmarks(void);
@@ -43,6 +44,7 @@ int main(int argc, char **argv) {
     register_chan_benchmarks();
     register_clock_benchmarks();
     register_cond_benchmarks();
+    register_context_benchmarks();
     register_defer_benchmarks();
     register_error_benchmarks();
     register_func_benchmarks();

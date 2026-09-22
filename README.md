@@ -98,7 +98,7 @@ These exist because benchmark suites rot, and they rot in predictable ways.
 
 ## What is measured so far
 
-burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, defer, panic, and the locks in `sync`.
+burrow is early and this tracks it. Right now that means the allocators, `Str`, `Slice`, `Error`, `Map`, the hash under it, interface dispatch, function values, the arithmetic that Go defines and C leaves undefined, reading bytes as text, the pieces the scheduler is assembled from, the scheduler itself, the monotonic clock underneath it, the timers built on that, channels and the select in front of them, defer, panic, the locks and the two containers in `sync`, and `context`.
 
 | Benchmark | Against | Notes |
 | --- | --- | --- |
@@ -250,8 +250,8 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `thread_start_join` | Go's `go` plus a `WaitGroup` | A clone syscall and a stack from the kernel, against a few hundred bytes from a free list |
 | `thread_yield` | Go's `runtime.Gosched` | Giving the processor up through the kernel against giving a turn up in user space |
 | `thread_self` | nothing | Go does not export a goroutine id on purpose, so there is nothing honest to pair it with |
-| `context_switch` | Go's goroutine switch | Two switches per iteration on both sides, one of which goes through a scheduler and a channel and one of which does not |
-| `context_make` | nothing | Laying a trampoline over a stack that already exists, which Go does not let a program do |
+| `mcontext_switch` | Go's goroutine switch | Two switches per iteration on both sides, one of which goes through a scheduler and a channel and one of which does not |
+| `mcontext_make` | nothing | Laying a trampoline over a stack that already exists, which Go does not let a program do |
 | `stack_alloc_free_min` | nothing | The mapping and the guard page a goroutine gets when nothing is cached, which is the number a free list has to beat |
 | `stack_alloc_free_large` | nothing | A megabyte, because unmapping has to walk the page tables for everything it takes back |
 | `stack_set_current` | nothing | What the scheduler will call on every switch, so it has to stay a thread local store |
@@ -298,6 +298,17 @@ burrow is early and this tracks it. Right now that means the allocators, `Str`, 
 | `panic_caught_scopes` | the same in Go | Three frames deep with a deferred call in each, which is the shape a real panic has, since the reason to unwind is that there is cleanup to run |
 | `callers_ten` | Go's `runtime.Callers` | Ten frames deep with room for the whole stack, which is what a crash reporter or a profiler asks for |
 | `callers_two` | the same in Go | The same stack with room for two frames, which is what a logger asks for when all it wants is the line above it |
+| `context_done` | Go's `Context.Done` | The call every select on a cancellation goes through, a load here against an atomic load and a branch there |
+| `context_err_live` | Go's `Context.Err` | A context nobody has cancelled, so it is an uncontended lock and unlock plus two loads on both sides |
+| `context_value_shallow` | Go's `Context.Value` | The value on the context being asked, so one interface comparison and no walk |
+| `context_value_deep` | the same in Go | Eight levels up, so the gap against the row above divided by seven is what a level costs |
+| `context_value_miss` | the same in Go | Eight levels and then the root, finding nothing, which is what a lookup for somebody else's key costs |
+| `context_with_cancel` | Go's `context.WithCancel` | Make it, cancel it, free it, which is the whole life of the context a request handler holds |
+| `context_with_cancel_nested` | the same in Go | The same under a cancellable parent, so the gap against the row above is what attaching and detaching cost |
+| `context_with_timeout` | Go's `context.WithTimeout` | The same life with a deadline an hour out, so the timer is armed and stopped and never fires |
+| `context_with_timeout_expired` | the same in Go | A deadline already gone by, so no timer is armed and the context comes back already cancelled |
+| `context_with_value` | Go's `context.WithValue` | A four word node and no lock at all on either side |
+| `context_cancel_tree` | the same in Go | Sixty four children under one parent and a cancel that has to reach all of them, which is a request fanning out |
 
 `ErrorfWrap` is on the Go side with no C counterpart, on purpose. `fmt.Errorf` with `%w` is how Go wraps in practice and burrow has no wrapping constructor until `fmt` lands, so the Go number is here first and `fmt_errorf` will arrive next to a target instead of next to nothing.
 
@@ -345,7 +356,7 @@ There is a third finding in there that is worth recording because it is not obvi
 
 The runtime rows are the ones to read least literally, because eleven of the twelve have no Go pair and three of them are not meant to be fast. They are here so that the scheduler can be measured against the parts it is made of rather than against nothing.
 
-`context_switch` is the row with a pair and the pair is uneven on purpose. Both sides pass a turn back and forth twice per iteration, and Go's version goes through the scheduler and an unbuffered channel while burrow's saves registers and changes a stack pointer. So the burrow number is a floor and the Go number is the target, and the distance between them is the budget a goroutine switch has to fit inside. On an M4 that came out at 36.40 nanoseconds against Go's 231.60, which says there is about 195 nanoseconds of room for everything a real scheduler has to do, and that if the finished thing lands anywhere near Go it will not be the switch that made it slow. On server2, an EPYC with the run pinned to two cores, the same row is 30.46 against Go's 659.30, so the budget there is over 600 nanoseconds. The gap between the two machines is mostly Go's side rather than burrow's, and the honest reading is that the floor is stable across both and the target is not.
+`mcontext_switch` is the row with a pair and the pair is uneven on purpose. Both sides pass a turn back and forth twice per iteration, and Go's version goes through the scheduler and an unbuffered channel while burrow's saves registers and changes a stack pointer. So the burrow number is a floor and the Go number is the target, and the distance between them is the budget a goroutine switch has to fit inside. On an M4 that came out at 36.40 nanoseconds against Go's 231.60, which says there is about 195 nanoseconds of room for everything a real scheduler has to do, and that if the finished thing lands anywhere near Go it will not be the switch that made it slow. On server2, an EPYC with the run pinned to two cores, the same row is 30.46 against Go's 659.30, so the budget there is over 600 nanoseconds. The gap between the two machines is mostly Go's side rather than burrow's, and the honest reading is that the floor is stable across both and the target is not.
 
 `stack_alloc_free_min` is a thousand nanoseconds and that is the correct answer to the wrong question. It is one `mmap`, one `mprotect` and one `munmap`, and Go does not pay that per goroutine because it keeps 2, 4, 8 and 16 kilobyte spans in a per P cache and only goes to the kernel when the cache is empty. burrow will have the same cache and the rows for it go in next to these. Until then this row is the price of not having one, which is the most useful thing it can be: a launch that costs a microsecond cannot reach ten million launches a second on any number of cores.
 
@@ -482,6 +493,24 @@ The fix was written and it measured at nothing, which is the second time that ha
 `sync_pool_sweep_idle` has no Go column because Go has no such call. It is here because the design raises the question: burrow drains pools on the system monitor's timer rather than at a garbage collection, which means a timer that fires in every burrow program whether it has a pool or not. It is 15.63 nanoseconds for one pool, which is a lock, a walk of an empty generation and two pointer swaps, so a program with a hundred pools spends about a microsecond and a half per second on it. That is the answer to the question and it is the end of it.
 
 There is no steal row. A steal is a Get whose own P has nothing and takes from the far end of another P's ring, and timing one needs a second P with something in its ring at the moment the first one looks. The runner pins the process to one CPU so the numbers hold still, which makes that arrangement impossible to set up honestly here. It is the path that matters least of the three anyway, since a pool that steals often is a pool being used across Ps in a way that Go's design is explicitly not optimised for either.
+
+`context` is the first package here that is mostly other packages. A `WithCancel` is a node, a channel, a lock and a list, a `WithTimeout` adds a timer to that, and a cancel is a channel close per node in the subtree, so these rows are a reading of the runtime underneath as much as of the package itself. [results/server2-2026-09-22-context.txt](results/server2-2026-09-22-context.txt) is the table.
+
+The rows that were the reason to write the package the way it is written came out the way they were supposed to. `context_cancel_tree` is 12.7 microseconds against Go's 32.0, a ratio of 0.40x, which is sixty four children attached, cancelled and freed, and it is the intrusive list against Go's `map[canceler]struct{}`. `context_with_cancel_nested` is 270.64 nanoseconds against 395.20, and the unnested row next to it is level at 0.99x, so the difference between those two rows is attaching and detaching and that is where the list wins. Go cannot make the same choice, because a `canceler` is an interface value and there is nowhere to put the links.
+
+`context_done` is 3.62 nanoseconds against 4.69. That is the other half of the trade: burrow makes the done channel when the context is made because `context_done` has no allocator and no way to report a failure, so the read is a load where Go's is an atomic load and a branch into the code that makes one. The cost of that choice is a channel per `WithCancel` whether or not anybody waits on it, and the `context_with_cancel` row being level with Go says the channel is affordable.
+
+Two rows are slower than Go and both have an explanation that is not about `context`.
+
+`context_value_deep` is 122.93 nanoseconds against 49.79 and `context_value_shallow` is 16.92 against 7.34, so the per level cost is about 15 nanoseconds here against about 6 there. A lookup compares the key at every level, and burrow's comparison goes through `any_equal`, which dispatches to the type descriptor's `equal` function. Go compares two interface values with an inline compare of two words. A pointer identity fast path would close most of it, since two keys built from the same `static` descriptor and the same address are the same key, but pointer identity is not reflexive for a float key holding a NaN, so it needs a kind check in front of it rather than being dropped in. That is a `reflect` and `iface` change rather than a `context` one and it is tamnd/burrow#90.
+
+`context_err_live` is 11.91 nanoseconds against 3.61, a ratio of 3.30x. Both sides take the node's mutex, so this row is very nearly a measurement of `SyncMutex` against `sync.Mutex` with two loads on top, and Go's uncontended path is a single compare and swap on a word with nothing else in it. That is a `sync` row wearing a `context` hat, it belongs to whoever takes the mutex fast path apart next, and it is tamnd/burrow#91.
+
+The two deadline rows are the ones added with `WithDeadline` and `WithTimeout`, and both of them are read as a distance from a row above rather than on their own.
+
+`context_with_timeout` is 564.01 nanoseconds against Go's 735.80. Subtract the `context_with_cancel` row from each and what is left is the deadline: about 329 nanoseconds here against about 499 there, which is a timer armed and stopped again on both sides. burrow goes through `time_after_func`, so there is a `TimeTimer` allocated here that Go does not allocate, and it is ahead anyway. The row to watch is this distance rather than the absolute number, because everything in it belongs to the timer package and will move when that does.
+
+`context_with_timeout_expired` is 274.44 against 431.30, and the thing to check is not the ratio, it is that 274 is near the 235 of `context_with_cancel` and nowhere near the 564 above it. A deadline that has already gone by should arm no timer at all, and a row that drifts up towards the armed one is how you find out that it started arming one.
 
 Everything else arrives as the packages do.
 

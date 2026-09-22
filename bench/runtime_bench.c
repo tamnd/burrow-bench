@@ -28,7 +28,7 @@
 
 #include "bench.h"
 
-#include "burrow/context.h"
+#include "burrow/mcontext.h"
 #include "burrow/runtime.h"
 #include "burrow/sched.h"
 #include "burrow/slice.h"
@@ -52,8 +52,8 @@
  * pointer swap. The burrow row is a floor rather than a competitor, and the
  * distance to Go's row is the budget the scheduler has to fit inside. */
 
-static burrow__Context rt_main;
-static burrow__Context rt_worker;
+static burrow__MContext rt_main;
+static burrow__MContext rt_worker;
 static burrow__Stack rt_stack;
 static volatile uint32_t rt_stop;
 
@@ -64,16 +64,16 @@ static void rt_bounce(void *arg) {
      * loop rather than a chain of calls because the point is the switch, and
      * anything else in here would end up in the measurement. */
     while (rt_stop == 0)
-        burrow__context_switch(&rt_worker, &rt_main);
+        burrow__mcontext_switch(&rt_worker, &rt_main);
 }
 
-BENCH(context_switch) {
+BENCH(mcontext_switch) {
     bench_pause(b);
 
     if (!burrow__stack_alloc(&rt_stack, 64u * 1024u))
         return;
 
-    if (!burrow__context_attach(&rt_main)) {
+    if (!burrow__mcontext_attach(&rt_main)) {
         burrow__stack_free(&rt_stack);
         return;
     }
@@ -81,9 +81,9 @@ BENCH(context_switch) {
     size_t size = (size_t)((unsigned char *)rt_stack.hi - (unsigned char *)rt_stack.lo);
     rt_stop = 0;
 
-    if (!burrow__context_make(&rt_worker, rt_stack.lo, size, rt_bounce, NULL,
+    if (!burrow__mcontext_make(&rt_worker, rt_stack.lo, size, rt_bounce, NULL,
                               &rt_main)) {
-        burrow__context_detach(&rt_main);
+        burrow__mcontext_detach(&rt_main);
         burrow__stack_free(&rt_stack);
         return;
     }
@@ -91,7 +91,7 @@ BENCH(context_switch) {
     bench_resume(b);
 
     BENCH_LOOP(b) {
-        burrow__context_switch(&rt_main, &rt_worker);
+        burrow__mcontext_switch(&rt_main, &rt_worker);
     }
 
     bench_pause(b);
@@ -101,10 +101,10 @@ BENCH(context_switch) {
      * inside a switch would leave a stack that nothing is ever coming back
      * from. */
     rt_stop = 1;
-    burrow__context_switch(&rt_main, &rt_worker);
+    burrow__mcontext_switch(&rt_main, &rt_worker);
 
-    burrow__context_free(&rt_worker);
-    burrow__context_detach(&rt_main);
+    burrow__mcontext_free(&rt_worker);
+    burrow__mcontext_detach(&rt_main);
     burrow__stack_free(&rt_stack);
 
     bench_resume(b);
@@ -116,14 +116,14 @@ BENCH(context_switch) {
  * launch without thinking about it. On Windows it is a fiber and therefore a
  * kernel object, and the row will say so loudly. */
 static burrow__Stack rt_make_stack;
-static burrow__Context rt_made;
-static burrow__Context rt_link;
+static burrow__MContext rt_made;
+static burrow__MContext rt_link;
 
 static void rt_nothing(void *arg) {
     (void)arg;
 }
 
-BENCH(context_make) {
+BENCH(mcontext_make) {
     bench_pause(b);
     if (!burrow__stack_alloc(&rt_make_stack, 64u * 1024u))
         return;
@@ -132,10 +132,10 @@ BENCH(context_make) {
     bench_resume(b);
 
     BENCH_LOOP(b) {
-        if (!burrow__context_make(&rt_made, rt_make_stack.lo, size, rt_nothing, NULL,
+        if (!burrow__mcontext_make(&rt_made, rt_make_stack.lo, size, rt_nothing, NULL,
                                   &rt_link))
             break;
-        burrow__context_free(&rt_made);
+        burrow__mcontext_free(&rt_made);
     }
 
     bench_pause(b);
@@ -415,8 +415,8 @@ BENCH(callers_two) {
 void register_runtime_benchmarks(void);
 
 void register_runtime_benchmarks(void) {
-    BENCH_RUN(context_switch);
-    BENCH_RUN(context_make);
+    BENCH_RUN(mcontext_switch);
+    BENCH_RUN(mcontext_make);
     BENCH_RUN(stack_alloc_free_min);
     BENCH_RUN(stack_alloc_free_large);
     BENCH_RUN(stack_set_current);

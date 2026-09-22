@@ -50,7 +50,7 @@ BURROW_MAKE := CC=$(CC)
 ifneq ($(SAN),)
   CFLAGS += $(SAN)
   LDFLAGS += $(SAN)
-  BURROW_MAKE += MODE=debug CFLAGS='-std=c11 -O1 -g -Iinclude -DBURROW_SOURCE_ID="bench" $(SAN)'
+  BURROW_MAKE += MODE=debug CFLAGS='-std=c11 -O1 -g -Iinclude -DBURROW_SOURCE_ID=\"bench\" $(SAN)'
 endif
 
 # Where burrow's own objects land, which is a directory of ours inside its tree
