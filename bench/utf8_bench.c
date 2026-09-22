@@ -260,7 +260,8 @@ BENCH(utf8_encode_wide) {
     Slice out = slice_from(buf, (Int)sizeof buf, (Int)sizeof buf, TYPE_BYTE);
 
     BENCH_LOOP(b) {
-        bench_keep_u64((uint64_t)utf8_encode_rune(out, (Rune)(0x1F300 + (bench_i_ & 15))));
+        bench_keep_u64(
+            (uint64_t)utf8_encode_rune(out, (Rune)(0x1F300 + (bench_i_ & 15))));
     }
 }
 

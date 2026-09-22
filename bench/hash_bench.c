@@ -80,7 +80,8 @@ static void build_keys(void) {
         if (snprintf(long_bytes[i], sizeof long_bytes[i],
                      "/some/reasonably/longer/path/that/a/real/program/would/use/%05d",
                      i) != LONG_LEN) {
-            fprintf(stderr, "hash_bench: long key is not the length the Go side uses\n");
+            fprintf(stderr,
+                    "hash_bench: long key is not the length the Go side uses\n");
             exit(1);
         }
         long_keys[i] = (Str){(const Byte *)long_bytes[i], LONG_LEN};

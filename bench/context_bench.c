@@ -241,7 +241,8 @@ static void value_miss_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        bench_keep(context_value(chain[DEPTH - 1], BURROW_ANY(&key_desc, &key_three)).t);
+        bench_keep(
+            context_value(chain[DEPTH - 1], BURROW_ANY(&key_desc, &key_three)).t);
     }
     bench_pause(b);
 
@@ -510,8 +511,8 @@ static void after_func_body(void *arg) {
     bench_resume(b);
     BENCH_LOOP(b) {
         StopFunc stop;
-        Context reg = context_after_func(a, parent, BURROW_FN(Func, nothing, NULL),
-                                         &stop);
+        Context reg =
+            context_after_func(a, parent, BURROW_FN(Func, nothing, NULL), &stop);
 
         bench_keep(reg.data);
         bench_keep_u64((uint64_t)BURROW_CALLF0(stop));

@@ -82,7 +82,7 @@ BENCH(mcontext_switch) {
     rt_stop = 0;
 
     if (!burrow__mcontext_make(&rt_worker, rt_stack.lo, size, rt_bounce, NULL,
-                              &rt_main)) {
+                               &rt_main)) {
         burrow__mcontext_detach(&rt_main);
         burrow__stack_free(&rt_stack);
         return;
@@ -133,7 +133,7 @@ BENCH(mcontext_make) {
 
     BENCH_LOOP(b) {
         if (!burrow__mcontext_make(&rt_made, rt_make_stack.lo, size, rt_nothing, NULL,
-                                  &rt_link))
+                                   &rt_link))
             break;
         burrow__mcontext_free(&rt_made);
     }

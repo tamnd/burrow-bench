@@ -20,8 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Pinned, the same version and for the same reason burrow pins it.
+      # clang-format changes its mind between releases about where a long call
+      # wraps, so an unpinned job breaks on whatever version the runner image
+      # picked up that week and the break has nothing to do with the change
+      # that triggered it. Moving the pin is a line here and whatever the new
+      # version wants to reformat, in one commit.
       - name: clang-format
         run: |
+          pipx install clang-format==20.1.7
           clang-format --version
           clang-format --dry-run --Werror $(git ls-files '*.c' '*.h')
 
