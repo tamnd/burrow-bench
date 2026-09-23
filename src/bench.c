@@ -224,8 +224,18 @@ static double median_of(double *v, int n) {
 
 /* -------------------------------------------------------------------- main */
 
+/* A substring, or the whole name when the filter ends in $, since
+ * goroutine_start is a substring of goroutine_start_batch and a profile of one
+ * row should not have the other in it. */
+static bool name_matches(const char *name, const char *filter) {
+    size_t n = strlen(filter);
+    if (n > 0 && filter[n - 1] == '$')
+        return strlen(name) == n - 1 && strncmp(name, filter, n - 1) == 0;
+    return strstr(name, filter) != NULL;
+}
+
 static void usage(void) {
-    fprintf(stderr, "usage: bench [-run substring] [-time seconds] [-n count] "
+    fprintf(stderr, "usage: bench [-run substring or name$] [-time seconds] [-n count] "
                     "[-count runs] [-tsv] [-list]\n");
 }
 
@@ -281,7 +291,7 @@ int bench_main(int argc, char **argv) {
     int ran = 0;
     for (int i = 0; i < nentries; i++) {
         const Entry *e = &entries[i];
-        if (filter != NULL && strstr(e->name, filter) == NULL)
+        if (filter != NULL && !name_matches(e->name, filter))
             continue;
         ran++;
 

@@ -151,11 +151,11 @@ BENCH(error_as_chain) {
 /* Reading the message, which in burrow is a load and in Go is a method call
  * that may build a string. Both sides here hold a message that is already
  * built, so this is the vtable dispatch and nothing else. */
-BENCH(error_message) {
+BENCH(error_text) {
     Error err = build_chain();
 
     BENCH_LOOP(b) {
-        Str m = error_message(err);
+        Str m = error_text(err);
         bench_keep(m.p);
     }
 }
@@ -255,7 +255,7 @@ void register_error_benchmarks(void) {
     BENCH_RUN(error_is_chain);
     BENCH_RUN(error_is_chain_miss);
     BENCH_RUN(error_as_chain);
-    BENCH_RUN(error_message);
+    BENCH_RUN(error_text);
     BENCH_RUN(error_return_ok);
     BENCH_RUN(error_new);
     BENCH_RUN(error_sentinel_use);

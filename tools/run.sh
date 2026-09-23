@@ -37,10 +37,10 @@ COUNT=${COUNT:-5}
 # Pick a core that is not core 0, because that is where interrupts land.
 PIN=${PIN:-}
 
-# A substring of the C benchmark names, empty for all of them. The Go side gets
-# the matching Go names out of pairs.txt rather than the same string, since
-# hash_int and HashInt are the same benchmark spelled two ways and no single
-# pattern matches both.
+# A substring of the C benchmark names, or an exact name ending in $, empty for
+# all of them. The Go side gets the matching Go names out of pairs.txt rather
+# than the same string, since hash_int and HashInt are the same benchmark
+# spelled two ways and no single pattern matches both.
 RUN=${RUN:-}
 
 # Which number out of the repetitions ends up in the table.
@@ -89,7 +89,7 @@ while [ $# -gt 0 ]; do
 		shift 2
 		;;
 	*)
-		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs] [-pin cpu] [-run substring] [-stat median|min]" >&2
+		echo "usage: tools/run.sh [-o results/name.txt] [-time seconds] [-count runs] [-pin cpu] [-run substring or name$] [-stat median|min]" >&2
 		exit 2
 		;;
 	esac
@@ -186,7 +186,10 @@ $pin_cmd "$BUILD/bench" -time "$TIME" -count "$COUNT" $c_filter -tsv >"$c_out"
 # that matches nothing is the honest answer to a filter that matched nothing.
 go_filter="."
 if [ -n "$RUN" ]; then
-	names=$(awk -v r="$RUN" 'index($1, r) { printf "%s%s", (n++ ? "|" : ""), $2 }' tools/pairs.txt)
+	# A trailing $ asks for the exact name, the same as it does for the C side.
+	names=$(awk -v r="$RUN" '
+		BEGIN { exact = sub(/\$$/, "", r) }
+		(exact ? $1 == r : index($1, r)) { printf "%s%s", (n++ ? "|" : ""), $2 }' tools/pairs.txt)
 	if [ -n "$names" ]; then
 		go_filter="^Benchmark($names)\$"
 	else
@@ -272,14 +275,17 @@ table() {
 			seen[cname] = 1
 		}
 
-		print ""
-		print "not paired with a Go benchmark"
+		heading = 0
 		# The spread is worked out before the printf rather than inside it. A
 		# > inside a print statement is an output redirection to awk, not a
 		# comparison, so a ternary in an argument list is a syntax error on the
 		# awk that ships with macOS and silently something else elsewhere.
 		for (k in cns) {
 			if (k in seen) continue
+			if (!heading++) {
+				print ""
+				print "not paired with a Go benchmark"
+			}
 			cs = cspread[k] >= 0 ? sprintf("%.0f%%", cspread[k]) : "-"
 			printf "%-26s %12.2f %8s\n", k, cns[k], cs
 		}
