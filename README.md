@@ -45,11 +45,19 @@ To run part of the suite, and to get a number a busy machine cannot ruin:
 tools/run.sh -pin 5 -run hash -stat min -count 9
 ```
 
-`-run` takes a substring of the C benchmark names. The Go side gets the matching Go names out of `tools/pairs.txt` rather than the same string, because `hash_int` and `HashInt` are one benchmark spelled two ways and no single pattern finds both.
+`-run` takes a substring of the C benchmark names, or an exact name if it ends in `$`, so `-run 'goroutine_start$'` runs that row and not `goroutine_start_batch` as well. The Go side gets the matching Go names out of `tools/pairs.txt` rather than the same string, because `hash_int` and `HashInt` are one benchmark spelled two ways and no single pattern finds both.
 
 `-stat min` prints the fastest of the runs instead of the median. The median is right on a machine that is doing nothing else, and none of the machines this project has are doing nothing else. Nothing another process does can make a benchmark run faster, so on a loaded box the minimum is the closest available thing to what a quiet machine would say, while the median tracks whatever else is running. The spread column is still printed next to it, because a minimum taken out of nine runs that were all interrupted is still not a measurement.
 
 This matters more than it sounds like it should. An unpinned run gets migrated between cores partway through, arrives with a cold cache and a cold branch predictor, and on a two socket machine can end up reading memory attached to the other socket. Three runs of one benchmark on a lightly loaded server came back 9.3, 15.1 and 22.8 nanoseconds unpinned, and within one percent of each other pinned. The header of every results file records whether the run was pinned, so a file that does not say so is not evidence about anything smaller than a factor of two.
+
+To compare two burrow trees rather than burrow and Go, which is the question when a change to burrow is meant to make something faster:
+
+```sh
+tools/ab.sh ../burrow-old ../burrow goroutine_start goroutine_yield_pair
+```
+
+That builds the benchmarks against each tree and runs each named benchmark on both under `perf stat`, taking turns five times, and prints the fewest user space cycles per iteration with the instruction count of that run. On a shared machine this is the number to trust. Wall clock time on the servers this project uses moves by a factor of two with the load, while a cycle count only moves with what the core did for this process, so two trees measured a minute apart on the same core compare well at a load of thirty. The instruction count does not move at all, which makes it a check on the cycles: fewer instructions and more cycles means a stall worth looking at. It needs `perf` and `taskset`, so it is Linux only.
 
 macOS has no equivalent. Thread affinity there is a hint and there is nothing that pins a process to a core, so `-pin` is Linux only and a Mac run says `pinned no` in its header.
 

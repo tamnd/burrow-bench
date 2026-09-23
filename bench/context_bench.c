@@ -112,7 +112,7 @@ static void run(Bench *b, void (*body)(void *)) {
 
 static void done_body(void *arg) {
     Bench *b = (Bench *)arg;
-    CancelFunc cancel;
+    ContextCancelFunc cancel;
     Context c = context_with_cancel(heap_allocator(), context_background(), &cancel);
 
     bench_resume(b);
@@ -122,7 +122,7 @@ static void done_body(void *arg) {
     bench_pause(b);
 
     BURROW_CALLF0(cancel);
-    context_free(c);
+    context_release(c);
 }
 
 BENCH(context_done) {
@@ -131,7 +131,7 @@ BENCH(context_done) {
 
 static void err_body(void *arg) {
     Bench *b = (Bench *)arg;
-    CancelFunc cancel;
+    ContextCancelFunc cancel;
     Context c = context_with_cancel(heap_allocator(), context_background(), &cancel);
 
     bench_resume(b);
@@ -141,7 +141,7 @@ static void err_body(void *arg) {
     bench_pause(b);
 
     BURROW_CALLF0(cancel);
-    context_free(c);
+    context_release(c);
 }
 
 BENCH(context_err_live) {
@@ -175,7 +175,7 @@ static void value_shallow_body(void *arg) {
     }
     bench_pause(b);
 
-    context_free(c);
+    context_release(c);
 }
 
 BENCH(context_value_shallow) {
@@ -199,7 +199,7 @@ static Int build(Alloc *a, Context *chain) {
 
 static void unbuild(Context *chain, Int n) {
     while (n > 0)
-        context_free(chain[--n]);
+        context_release(chain[--n]);
 }
 
 static void value_deep_body(void *arg) {
@@ -272,12 +272,12 @@ static void with_cancel_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelFunc cancel;
+        ContextCancelFunc cancel;
         Context c = context_with_cancel(a, root, &cancel);
 
         bench_keep(c.data);
         BURROW_CALLF0(cancel);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 }
@@ -307,12 +307,12 @@ static void with_timeout_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelFunc cancel;
+        ContextCancelFunc cancel;
         Context c = context_with_timeout(a, root, AN_HOUR, &cancel);
 
         bench_keep(c.data);
         BURROW_CALLF0(cancel);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 }
@@ -337,12 +337,12 @@ static void with_timeout_expired_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelFunc cancel;
+        ContextCancelFunc cancel;
         Context c = context_with_timeout(a, root, 0, &cancel);
 
         bench_keep(c.data);
         BURROW_CALLF0(cancel);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 }
@@ -361,7 +361,7 @@ static void with_value_body(void *arg) {
         Context c = context_with_value(a, root, KEY_ONE, VALUE);
 
         bench_keep(c.data);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 }
@@ -377,7 +377,7 @@ BENCH(context_with_value) {
 static void with_cancel_nested_body(void *arg) {
     Bench *b = (Bench *)arg;
     Alloc *a = heap_allocator();
-    CancelFunc parent_cancel;
+    ContextCancelFunc parent_cancel;
     Context parent = context_with_cancel(a, context_background(), &parent_cancel);
 
     if (BURROW_CONTEXT_IS_NIL(parent))
@@ -385,17 +385,17 @@ static void with_cancel_nested_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelFunc cancel;
+        ContextCancelFunc cancel;
         Context c = context_with_cancel(a, parent, &cancel);
 
         bench_keep(c.data);
         BURROW_CALLF0(cancel);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 
     BURROW_CALLF0(parent_cancel);
-    context_free(parent);
+    context_release(parent);
 }
 
 BENCH(context_with_cancel_nested) {
@@ -430,7 +430,7 @@ static void nothing(void *env) {
 
 static void cause_body(void *arg) {
     Bench *b = (Bench *)arg;
-    CancelCauseFunc cancel;
+    ContextCancelCauseFunc cancel;
     Context c =
         context_with_cancel_cause(heap_allocator(), context_background(), &cancel);
 
@@ -445,7 +445,7 @@ static void cause_body(void *arg) {
     }
     bench_pause(b);
 
-    context_free(c);
+    context_release(c);
 }
 
 BENCH(context_cause) {
@@ -459,12 +459,12 @@ static void with_cancel_cause_body(void *arg) {
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelCauseFunc cancel;
+        ContextCancelCauseFunc cancel;
         Context c = context_with_cancel_cause(a, root, &cancel);
 
         bench_keep(c.data);
         BURROW_CALLF(cancel, bench_reason);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 }
@@ -476,7 +476,7 @@ BENCH(context_with_cancel_cause) {
 static void without_cancel_body(void *arg) {
     Bench *b = (Bench *)arg;
     Alloc *a = heap_allocator();
-    CancelFunc parent_cancel;
+    ContextCancelFunc parent_cancel;
     Context parent = context_with_cancel(a, context_background(), &parent_cancel);
 
     if (BURROW_CONTEXT_IS_NIL(parent))
@@ -487,12 +487,12 @@ static void without_cancel_body(void *arg) {
         Context c = context_without_cancel(a, parent);
 
         bench_keep(c.data);
-        context_free(c);
+        context_release(c);
     }
     bench_pause(b);
 
     BURROW_CALLF0(parent_cancel);
-    context_free(parent);
+    context_release(parent);
 }
 
 BENCH(context_without_cancel) {
@@ -502,7 +502,7 @@ BENCH(context_without_cancel) {
 static void after_func_body(void *arg) {
     Bench *b = (Bench *)arg;
     Alloc *a = heap_allocator();
-    CancelFunc parent_cancel;
+    ContextCancelFunc parent_cancel;
     Context parent = context_with_cancel(a, context_background(), &parent_cancel);
 
     if (BURROW_CONTEXT_IS_NIL(parent))
@@ -516,12 +516,12 @@ static void after_func_body(void *arg) {
 
         bench_keep(reg.data);
         bench_keep_u64((uint64_t)BURROW_CALLF0(stop));
-        context_free(reg);
+        context_release(reg);
     }
     bench_pause(b);
 
     BURROW_CALLF0(parent_cancel);
-    context_free(parent);
+    context_release(parent);
 }
 
 BENCH(context_after_func) {
@@ -546,11 +546,11 @@ static void cancel_tree_body(void *arg) {
     Bench *b = (Bench *)arg;
     Alloc *a = heap_allocator();
     Context kids[FANOUT];
-    CancelFunc kid_cancel;
+    ContextCancelFunc kid_cancel;
 
     bench_resume(b);
     BENCH_LOOP(b) {
-        CancelFunc cancel;
+        ContextCancelFunc cancel;
         Context parent = context_with_cancel(a, context_background(), &cancel);
         Int made = 0;
 
@@ -564,7 +564,7 @@ static void cancel_tree_body(void *arg) {
         BURROW_CALLF0(cancel);
 
         unbuild(kids, made);
-        context_free(parent);
+        context_release(parent);
     }
     bench_pause(b);
 }
