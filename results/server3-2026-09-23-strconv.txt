@@ -1,0 +1,51 @@
+machine    vmi3391933
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      unknown
+pinned     cpu 5 with taskset
+statistic  min of 15 runs
+filter     strconv
+date       2026-09-23 14:55:58Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+strconv_atoi                      20.54     333%        26.37      42%     0.78x
+strconv_atoi_neg                  22.18     160%        29.16     118%     0.76x
+strconv_parse_int_hex             83.79     230%       142.50     124%     0.59x
+strconv_append_int                81.68     143%       111.30     143%     0.73x
+strconv_append_int_small          43.21     184%        18.89     119%     2.29x
+strconv_append_uint_hex           64.17     171%       100.50      92%     0.64x
+strconv_atof64_decimal            68.95     172%       150.10      79%     0.46x
+strconv_atof64_float              76.97     160%       147.00      77%     0.52x
+strconv_atof64_exp                75.80     180%       148.00     205%     0.51x
+strconv_atof64_big               226.10     140%       533.80     103%     0.42x
+strconv_atof64_shortest          207.36      92%       270.10      95%     0.77x
+strconv_atof64_hard              188.54     102%     55483.00     112%     0.00x
+strconv_atof32_float             130.25      78%       248.00      47%     0.53x
+strconv_ftoa_decimal             218.60     124%       216.20      76%     1.01x
+strconv_ftoa_float               237.68     187%       208.70      90%     1.14x
+strconv_ftoa_exp                 224.51     108%       183.20      48%     1.23x
+strconv_ftoa_neg_exp             233.56     166%       192.20      75%     1.22x
+strconv_ftoa_long_exp            233.48     106%       333.00      80%     0.70x
+strconv_ftoa_big                 240.52      67%       282.90      87%     0.85x
+strconv_ftoa_binary_exp          146.32     153%       130.10      56%     1.12x
+strconv_ftoa32_float             122.14     179%       145.50     238%     0.84x
+strconv_ftoa32_shortest          132.14     140%       141.50     123%     0.93x
+strconv_ftoa64_fixed1            139.50     284%       168.40     119%     0.83x
+strconv_ftoa64_fixed3            165.87     194%       160.10     104%     1.04x
+strconv_ftoa64_fixed12           223.26     124%       213.40      54%     1.05x
+strconv_ftoa64_fixed17           248.12      89%       129.00     153%     1.92x
+strconv_ftoa64_f                 210.88     111%       115.80      99%     1.82x
+strconv_ftoa64_slow_path         211.07     224%       140.90     153%     1.50x
+strconv_append_quote             849.57     163%       828.20      34%     1.03x
+strconv_append_quote_rune        156.16     265%        20.39     110%     7.66x
+strconv_unquote_easy             122.86     273%        81.07     110%     1.52x
+strconv_unquote_hard            1941.06     103%      1373.00     103%     1.41x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

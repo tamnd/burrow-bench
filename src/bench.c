@@ -96,7 +96,7 @@ void bench_report_allocs(Bench *b, uint64_t bytes, uint64_t allocs) {
 
 /* ---------------------------------------------------------------- registry */
 
-#define BENCH_MAX 256
+#define BENCH_MAX 512
 
 typedef struct Entry {
     const char *name;

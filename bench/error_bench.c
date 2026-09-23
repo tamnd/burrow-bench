@@ -77,7 +77,7 @@ static const Type wrapped_type = {
 };
 
 static const ErrorVT wrapped_vt = {
-    &wrapped_type, wrapped_message, wrapped_unwrap, NULL, NULL, NULL,
+    &wrapped_type, wrapped_message, wrapped_unwrap, NULL, NULL, NULL, NULL,
 };
 
 static Wrapped wrap_nodes[DEPTH];

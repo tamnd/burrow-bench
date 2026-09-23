@@ -520,6 +520,14 @@ The two deadline rows are the ones added with `WithDeadline` and `WithTimeout`, 
 
 `context_with_timeout_expired` is 274.44 against 431.30, and the thing to check is not the ratio, it is that 274 is near the 235 of `context_with_cancel` and nowhere near the 564 above it. A deadline that has already gone by should arm no timer at all, and a row that drifts up towards the armed one is how you find out that it started arming one.
 
+`strconv` is the first package here where the numbers come from server3 rather than server2, and they come with the loudest spreads in this directory, so read [results/server3-2026-09-23-strconv.txt](results/server3-2026-09-23-strconv.txt) for its direction and not its decimals. Each row is the minimum of fifteen pinned runs, which holds up better on a busy machine than the spread column suggests, but a gap of ten percent in either direction here is not a result.
+
+Parsing is ahead of Go across the board. `strconv_atoi` is 20.54 nanoseconds against 26.37, and the float rows sit between 0.42x and 0.77x. `strconv_atof64_hard` is 188.54 against 55,483, which looks like a typo and is not one. The input is a subnormal with more digits than the fast path can take, Go 1.26 falls back to its big decimal for it, and burrow is a port of the unrounded scaling that replaced that fallback in Go 1.27. So that row compares two algorithms rather than two implementations of one, and it will close when the Go column moves to 1.27.
+
+Formatting is level with Go on most rows, from 0.70x to 1.23x. Two groups are not. The fixed precision rows, `strconv_ftoa64_fixed17` at 1.92x and `strconv_ftoa64_f` at 1.82x, are the path that asks for a set number of digits rather than the shortest, and it is the one to look at first. Then there are two small appends. `strconv_append_int_small` is 43.21 against 18.89 and `strconv_append_quote_rune` is 156.16 against 20.39. Both write a few bytes into a buffer that already has room for them, so the gap is overhead around a tiny amount of work rather than the work itself, and it should come out of the library rather than out of this table.
+
+The unquote rows are 1.52x and 1.41x. The easy row has no escapes in it, and burrow returns a view into the input for that without copying anything, the same as Go does, so the whole gap is in the scan that decides there was nothing to unescape. That scan is a byte at a time today, and it is the obvious place to start.
+
 Everything else arrives as the packages do.
 
 ## Licence
