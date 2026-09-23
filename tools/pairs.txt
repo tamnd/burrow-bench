@@ -60,7 +60,7 @@ error_is_sentinel_miss   ErrorIsSentinelMiss
 error_is_chain           ErrorIsChain
 error_is_chain_miss      ErrorIsChainMiss
 error_as_chain           ErrorAsChain
-error_message            ErrorMessage
+error_text               ErrorMessage
 error_return_ok          ErrorReturnOk
 error_new                ErrorNew
 error_sentinel_use       ErrorSentinelUse
@@ -297,3 +297,38 @@ synctest_wait_parked       SynctestWaitParked
 synctest_chan_pingpong     SynctestChanPingpong
 synctest_go                SynctestGo
 synctest_sleep             SynctestSleep
+
+# strconv. Every row appends into a buffer with room on both sides, and the
+# inputs are the ones Go's own strconv benchmarks use.
+strconv_atoi              StrconvAtoi
+strconv_atoi_neg          StrconvAtoiNeg
+strconv_parse_int_hex     StrconvParseIntHex
+strconv_append_int        StrconvAppendInt
+strconv_append_int_small  StrconvAppendIntSmall
+strconv_append_uint_hex   StrconvAppendUintHex
+strconv_atof64_decimal    StrconvAtof64Decimal
+strconv_atof64_float      StrconvAtof64Float
+strconv_atof64_exp        StrconvAtof64Exp
+strconv_atof64_big        StrconvAtof64Big
+strconv_atof64_shortest   StrconvAtof64Shortest
+strconv_atof64_hard       StrconvAtof64Hard
+strconv_atof32_float      StrconvAtof32Float
+strconv_ftoa_decimal      StrconvFtoaDecimal
+strconv_ftoa_float        StrconvFtoaFloat
+strconv_ftoa_exp          StrconvFtoaExp
+strconv_ftoa_neg_exp      StrconvFtoaNegExp
+strconv_ftoa_long_exp     StrconvFtoaLongExp
+strconv_ftoa_big          StrconvFtoaBig
+strconv_ftoa_binary_exp   StrconvFtoaBinaryExp
+strconv_ftoa32_float      StrconvFtoa32Float
+strconv_ftoa32_shortest   StrconvFtoa32Shortest
+strconv_ftoa64_fixed1     StrconvFtoa64Fixed1
+strconv_ftoa64_fixed3     StrconvFtoa64Fixed3
+strconv_ftoa64_fixed12    StrconvFtoa64Fixed12
+strconv_ftoa64_fixed17    StrconvFtoa64Fixed17
+strconv_ftoa64_f          StrconvFtoa64F
+strconv_ftoa64_slow_path  StrconvFtoa64SlowPath
+strconv_append_quote      StrconvAppendQuote
+strconv_append_quote_rune StrconvAppendQuoteRune
+strconv_unquote_easy      StrconvUnquoteEasy
+strconv_unquote_hard      StrconvUnquoteHard
