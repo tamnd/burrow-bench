@@ -528,6 +528,10 @@ Formatting is level with Go on most rows, from 0.70x to 1.23x. Two groups are no
 
 The unquote rows are 1.52x and 1.41x. The easy row has no escapes in it, and burrow returns a view into the input for that without copying anything, the same as Go does, so the whole gap is in the scan that decides there was nothing to unescape. That scan is a byte at a time today, and it is the obvious place to start.
 
+`strings` is from server3 as well, in [results/server3-2026-09-24-strings.txt](results/server3-2026-09-24-strings.txt), and the spreads are as loud as the strconv ones, so the same warning applies.
+
+Building new strings is ahead of Go. `strings_builder` is 0.43x, `strings_fields` 0.46x, `strings_html_escape` 0.51x, `strings_join` 0.57x, and the two replacer rows are 0.66x and 0.71x. Searching is mostly behind. Go does substring search in assembly, sixteen or thirty two bytes a step, and burrow does it in portable C eight bytes a step, which puts `strings_index_hard1` at 1.30x and `strings_index_hard2` at 1.93x, though `strings_index_hard3` is 0.83x and `strings_last_index_hard2` is 0.52x. `strings_count_hard2` at 1.73x is the same search run once per match. `strings_equal_fold` at 2.11x has no ASCII fast path yet, and that is the cheapest of these to fix.
+
 Everything else arrives as the packages do.
 
 ## Licence

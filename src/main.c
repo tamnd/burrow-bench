@@ -34,6 +34,7 @@ void register_select_benchmarks(void);
 void register_slice_benchmarks(void);
 void register_str_benchmarks(void);
 void register_strconv_benchmarks(void);
+void register_strings_benchmarks(void);
 void register_sync_atomic_benchmarks(void);
 void register_sync_benchmarks(void);
 void register_sync_map_benchmarks(void);
@@ -66,6 +67,7 @@ int main(int argc, char **argv) {
     register_slice_benchmarks();
     register_str_benchmarks();
     register_strconv_benchmarks();
+    register_strings_benchmarks();
     register_sync_atomic_benchmarks();
     register_sync_benchmarks();
     register_sync_map_benchmarks();
