@@ -1,0 +1,41 @@
+machine    vmi3391933
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      unknown
+pinned     cpu 5 with taskset
+statistic  min of 15 runs
+filter     strings_
+date       2026-09-24 12:32:05Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+strings_index_hard1           279875.17     409%    215029.00     136%     1.30x
+strings_index_hard2           705637.44     285%    365241.00     178%     1.93x
+strings_index_hard3          1354508.83     144%   1626225.00     186%     0.83x
+strings_last_index_hard2     1864890.62     799%   3552770.00     367%     0.52x
+strings_count_hard2           680573.72     202%    393431.00     236%     1.73x
+strings_index                     32.29      56%        17.81     113%     1.81x
+strings_index_rune                57.69     106%        42.19     142%     1.37x
+strings_index_any_ascii          117.65     127%       128.50      73%     0.92x
+strings_equal_fold               228.30      69%       108.30      79%     2.11x
+strings_trim_space                30.54     203%        25.32      69%     1.21x
+strings_fields                   809.01     280%      1747.00     130%     0.46x
+strings_split_single_byte        879.22     189%      1493.00     299%     0.59x
+strings_split_seq_single_byte       802.64      53%       597.50     244%     1.34x
+strings_join                     343.59      42%       601.10     166%     0.57x
+strings_repeat                    54.15      70%        31.11     157%     1.74x
+strings_to_upper                 296.70     114%       463.70     285%     0.64x
+strings_to_upper_unchanged        93.24     147%       149.40     156%     0.62x
+strings_replace_all             1478.98      89%      1236.00     161%     1.20x
+strings_builder                  373.94     273%       870.20     263%     0.43x
+strings_html_escape              195.18     129%       380.00     333%     0.51x
+strings_generic_match2         43106.58      85%     60418.00      91%     0.71x
+strings_single_match           53528.42     190%     80764.00     153%     0.66x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

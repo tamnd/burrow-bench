@@ -203,7 +203,9 @@ if command -v go >/dev/null 2>&1; then
 		go_env="GOMAXPROCS=1"
 	fi
 	# shellcheck disable=SC2086
-	(cd go && env $go_env $pin_cmd go test -run '^$' -bench "$go_filter" -benchmem -benchtime "${TIME}s" -count "$COUNT" ./...) >"$go_out"
+	# No timeout: go test stops a run at ten minutes, and fifteen counts of
+	# twenty benchmarks on a busy server take longer than that.
+	(cd go && env $go_env $pin_cmd go test -run '^$' -bench "$go_filter" -benchmem -benchtime "${TIME}s" -count "$COUNT" -timeout 0 ./...) >"$go_out"
 else
 	: >"$go_out"
 fi
