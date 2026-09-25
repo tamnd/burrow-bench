@@ -540,7 +540,7 @@ server3 had a load average of nine from other jobs while this ran, and the sprea
 
 `sort` is from the laptop, in [results/mac-2026-09-26-sort.txt](results/mac-2026-09-26-sort.txt). The rows are Go's own sort benchmarks with the same inputs, and the refill of the input between runs happens with the clock stopped on both sides, as Go's does with `StopTimer`. The laptop was running other jobs at the time, which is why some spreads are wide, and the table is the minimum of five runs.
 
-Every row is ahead of Go. The typed sorts gain the most, `sort_string1k` at 0.29x and `sort_int1k` at 0.41x, because burrow instantiates pdqsort for `Int` and `Str` and compares them inline, where Go's `sort.Ints` and `sort.Strings` go through `slices.Sort`. The stable sorts are around 0.5x. The closest are `sort_int1k_mod8` at 0.79x, which is mostly equal elements, and `sort_string1k_slice` at 0.72x, which calls a less function through a pointer on every comparison, as Go does.
+Every row is ahead of Go. The typed sorts gain the most, `sort_string1k` at 0.29x and `sort_int1k` at 0.41x, and those are the rows where burrow runs a copy of pdqsort made for `Int` or `Str` with the comparison inlined. The stable sorts are around 0.5x. The closest are `sort_int1k_mod8` at 0.79x, which is mostly equal elements, and `sort_string1k_slice` at 0.72x, which calls a less function through a pointer on every comparison, as Go does.
 
 Everything else arrives as the packages do.
 
