@@ -1,0 +1,29 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.4-6-g7dae4ef
+bench      6957e14-dirty
+pinned     no
+statistic  min of 7 runs
+filter     hash8
+date       2026-09-25 13:48:20Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+md5_hash8k                     10278.95       4%     10837.00       3%     0.95x
+md5_hash8bytes                    89.71       3%        78.66      12%     1.14x
+sha1_hash8k                     2859.47       5%      2671.00       3%     1.07x
+sha1_hash8bytes                   32.85       2%        34.11       1%     0.96x
+sha256_hash8k                   3199.93       4%      2700.00       1%     1.19x
+sha256_hash8bytes                 38.00       8%        36.41       1%     1.04x
+sha512_hash8k                   4762.34       0%      4885.00       1%     0.97x
+sha512_hash8bytes                103.38      65%       100.20       3%     1.03x
+sha3_256_hash8k                18068.02      39%      8155.00       4%     2.22x
+sha3_256_hash8bytes              199.32      48%       141.10      33%     1.41x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
