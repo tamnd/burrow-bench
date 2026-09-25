@@ -367,3 +367,17 @@ sha512_hash8k                  SHA512Hash8K
 sha512_hash8bytes              SHA512Hash8Bytes
 sha3_256_hash8k                SHA3256Hash8K
 sha3_256_hash8bytes            SHA3256Hash8Bytes
+
+# sort. Go's own sort benchmarks, with the reset of the input outside the clock
+# on both sides.
+sort_string1k                  SortString1K
+sort_string1k_slice            SortString1K_Slice
+sort_stable_string1k           StableString1K
+sort_int1k                     SortInt1K
+sort_int1k_sorted              SortInt1K_Sorted
+sort_int1k_reversed            SortInt1K_Reversed
+sort_int1k_mod8                SortInt1K_Mod8
+sort_stable_int1k              StableInt1K
+sort_stable_int1k_slice        StableInt1K_Slice
+sort_int64k                    SortInt64K
+sort_int64k_slice              SortInt64K_Slice
