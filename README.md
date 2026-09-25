@@ -534,9 +534,9 @@ Building new strings is ahead of Go. `strings_builder` is 0.43x, `strings_fields
 
 The hashes from `crypto` are measured twice, once on the laptop in [results/mac-2026-09-25-crypto.txt](results/mac-2026-09-25-crypto.txt) and once on server3 in [results/server3-2026-09-25-crypto.txt](results/server3-2026-09-25-crypto.txt), because both sides use the CPU's hash instructions where they have them and an M4 and an EPYC have different ones. Each row writes either 8 kilobytes or 8 bytes into a fresh digest and takes the sum, the same as Go's own `Hash8K` and `Hash8Bytes` benchmarks.
 
-On the M4 the hashes with hardware support are level with Go. MD5 is 0.95x on the long input and 1.14x on the short one, SHA-1 is 1.07x and 0.96x, and SHA-512 is 0.97x and 1.03x. SHA-256 is 1.19x on the long input, which is the one gap in that group, and it is the scheduling of the message words around the instructions rather than the instructions themselves. SHA-3 is 2.22x and 1.41x, and that one is not a surprise: Go uses the arm64 SHA-3 instructions and burrow does the permutation in portable C.
+On the M4 the hashes with hardware support are level with Go. MD5 is 0.95x on the long input and 1.14x on the short one, SHA-1 is 1.07x and 0.96x, and SHA-512 is 0.97x and 1.03x. SHA-256 is 1.19x on the long input which is the one gap in that group, and it is still open. SHA-3 is 2.22x and 1.41x, and that one is not a surprise: Go uses the arm64 SHA-3 instructions and burrow does the permutation in portable C.
 
-server3 had a load average of nine from other jobs while this ran, and the spread column shows it, so its file is there for direction only. SHA-1 and SHA-256 on the long input come out level with Go there too. MD5 at 1.72x and SHA-512 at 2.38x are the two rows that are real rather than noise, since Go has amd64 assembly for both and burrow has no x86 path for either yet.
+server3 had a load average of nine from other jobs while this ran, and the spread column shows it, so its file is there for direction only. SHA-1 and SHA-256 on the long input come out level with Go there too. MD5 at 1.72x and SHA-512 at 2.38x are the two rows most likely to survive a quiet rerun, since Go has amd64 assembly for both and burrow has no x86 path for either yet.
 
 Everything else arrives as the packages do.
 
