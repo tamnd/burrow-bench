@@ -1,0 +1,30 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.5-2-gd843c51
+bench      9850d74-dirty
+pinned     no
+statistic  min of 5 runs
+filter     sort_
+date       2026-09-25 17:51:55Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+sort_string1k                  25449.00      27%     88952.00       5%     0.29x
+sort_string1k_slice            88759.30      51%    123429.00       4%     0.72x
+sort_stable_string1k           58892.41      14%    166335.00       3%     0.35x
+sort_int1k                      7465.20      78%     18242.00       1%     0.41x
+sort_int1k_sorted                658.58      20%      1646.00       9%     0.40x
+sort_int1k_reversed              695.92      93%      2066.00      20%     0.34x
+sort_int1k_mod8                 6060.92       4%      7650.00       2%     0.79x
+sort_stable_int1k              49443.58      11%     96119.00       9%     0.51x
+sort_stable_int1k_slice        45644.56       9%     94837.00      10%     0.48x
+sort_int64k                  1916382.35       2%   2685717.00       1%     0.71x
+sort_int64k_slice            3666469.14       2%   6711193.00       2%     0.55x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
