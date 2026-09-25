@@ -357,3 +357,13 @@ strings_builder                StringsBuilder
 strings_html_escape            StringsHTMLEscape
 strings_generic_match2         StringsGenericMatch2
 strings_single_match           StringsSingleMatch
+md5_hash8k                     MD5Hash8K
+md5_hash8bytes                 MD5Hash8Bytes
+sha1_hash8k                    SHA1Hash8K
+sha1_hash8bytes                SHA1Hash8Bytes
+sha256_hash8k                  SHA256Hash8K
+sha256_hash8bytes              SHA256Hash8Bytes
+sha512_hash8k                  SHA512Hash8K
+sha512_hash8bytes              SHA512Hash8Bytes
+sha3_256_hash8k                SHA3256Hash8K
+sha3_256_hash8bytes            SHA3256Hash8Bytes

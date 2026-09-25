@@ -1,0 +1,29 @@
+machine    vmi3391933
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     unknown
+bench      unknown
+pinned     cpu 5 with taskset
+statistic  min of 15 runs
+filter     hash8
+date       2026-09-25 14:02:55Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+md5_hash8k                     21377.12     119%     12455.00      16%     1.72x
+md5_hash8bytes                   238.24      42%       140.30      15%     1.70x
+sha1_hash8k                     6099.62      74%      5239.00      33%     1.16x
+sha1_hash8bytes                  110.97      34%       110.80      28%     1.00x
+sha256_hash8k                   5670.70     644%      5669.00      31%     1.00x
+sha256_hash8bytes                192.50     307%        97.37      22%     1.98x
+sha512_hash8k                  40700.08     210%     17072.00      29%     2.38x
+sha512_hash8bytes                657.95     132%       333.40      21%     1.97x
+sha3_256_hash8k                38155.52     181%     34534.00      18%     1.10x
+sha3_256_hash8bytes              701.64      16%       589.70      14%     1.19x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
