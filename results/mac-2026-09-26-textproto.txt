@@ -1,0 +1,23 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.6-6-gf8aec47-dirty
+bench      5fed518-dirty
+pinned     no
+statistic  min of 5 runs
+filter     textproto_
+date       2026-09-26 09:33:52Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+textproto_read_mime_header_client      2082.85      10%      3022.00      49%     0.69x
+textproto_read_mime_header_server      1460.01      24%      2529.00      21%     0.58x
+textproto_uncommon               255.29       9%       303.50     126%     0.84x
+textproto_canonical_key           34.75      13%        35.95      14%     0.97x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

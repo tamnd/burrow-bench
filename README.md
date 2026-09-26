@@ -550,6 +550,10 @@ Every parse row is between 0.65x and 0.78x. Every string row is ahead too, from 
 
 26 of the 27 rows are ahead. The unescape rows gain the most, down to 0.45x on the longest input, and the escape rows are between 0.60x and 0.91x. Parse is 0.86x to 0.88x. `url_string_plain` is the one row behind, 37.5 against 32.3 nanoseconds, and it has not been looked into yet. The laptop had a load average near four during the run, and several rows have spreads above ten percent, so treat the small ratios as rough.
 
+`net/textproto` is from the laptop, in [results/mac-2026-09-26-textproto.txt](results/mac-2026-09-26-textproto.txt). The first three rows are Go's own `BenchmarkReadMIMEHeader` and `BenchmarkUncommon`, where one reader is refilled every time round, and the canonical key row is new on both sides. The laptop had a load average above five, so the table is the minimum of five runs and the spreads are wide.
+
+Every row is ahead or level. Reading the client headers is 0.69x and the server headers 0.58x. `textproto_uncommon` is 0.84x and `textproto_canonical_key` is 0.97x, which is level within the noise of this run.
+
 Everything else arrives as the packages do.
 
 ## Licence
