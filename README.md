@@ -546,6 +546,10 @@ Every row is ahead of Go. The typed sorts gain the most, `sort_string1k` at 0.29
 
 Every parse row is between 0.65x and 0.78x. Every string row is ahead too, from 0.53x for the IPv6 forms with `::` in them to 0.90x for an IPv4-mapped address. `netip_as16` is the one row behind, 1.25 against 0.77 nanoseconds. The C row hands the 16 bytes to `bench_keep` through a pointer, which makes them go through memory, where Go stores them into a package variable. The run has not been split to find out how much of the gap that is.
 
+`net/url` is from the laptop as well, in [results/mac-2026-09-26-url.txt](results/mac-2026-09-26-url.txt). The escape rows are Go's own url benchmarks on Go's escapeBenchmarks inputs, numbered in Go's order, and `go/url_test.go` gives each input a function of its own. The parse, string, resolve and query rows are new on both sides. The C rows take their results from an arena that is reset every time round.
+
+26 of the 27 rows are ahead. The unescape rows gain the most, down to 0.45x on the longest input, and the escape rows are between 0.60x and 0.91x. Parse is 0.86x to 0.88x. `url_string_plain` is the one row behind, 37.5 against 32.3 nanoseconds, and it has not been looked into yet. The laptop had a load average near four during the run, and several rows have spreads above ten percent, so treat the small ratios as rough.
+
 Everything else arrives as the packages do.
 
 ## Licence

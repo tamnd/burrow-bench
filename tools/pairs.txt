@@ -409,3 +409,35 @@ netip_prefix_string                    NetipPrefixString
 netip_ipv4_contains                    NetipIPv4Contains
 netip_ipv6_contains                    NetipIPv6Contains
 netip_as16                             NetipAs16
+
+# net/url. The escape rows are Go's own url benchmarks on Go's
+# escapeBenchmarks inputs, numbered in Go's order. The rest are new on both
+# sides. Every row that makes a string or a Url resets an arena each time round
+# in C, and allocates each time in Go.
+url_query_escape_0                     URLQueryEscape0
+url_path_escape_0                      URLPathEscape0
+url_query_unescape_0                   URLQueryUnescape0
+url_path_unescape_0                    URLPathUnescape0
+url_query_escape_1                     URLQueryEscape1
+url_path_escape_1                      URLPathEscape1
+url_query_unescape_1                   URLQueryUnescape1
+url_path_unescape_1                    URLPathUnescape1
+url_query_escape_2                     URLQueryEscape2
+url_path_escape_2                      URLPathEscape2
+url_query_unescape_2                   URLQueryUnescape2
+url_path_unescape_2                    URLPathUnescape2
+url_query_escape_3                     URLQueryEscape3
+url_path_escape_3                      URLPathEscape3
+url_query_unescape_3                   URLQueryUnescape3
+url_path_unescape_3                    URLPathUnescape3
+url_query_escape_4                     URLQueryEscape4
+url_path_escape_4                      URLPathEscape4
+url_query_unescape_4                   URLQueryUnescape4
+url_path_unescape_4                    URLPathUnescape4
+url_parse_full                         URLParseFull
+url_parse_plain                        URLParsePlain
+url_string_full                        URLStringFull
+url_string_plain                       URLStringPlain
+url_resolve_reference                  URLResolveReference
+url_encode_query                       URLEncodeQuery
+url_parse_query                        URLParseQuery
