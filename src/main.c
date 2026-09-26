@@ -33,6 +33,7 @@ void register_sched_benchmarks(void);
 void register_select_benchmarks(void);
 void register_slice_benchmarks(void);
 void register_str_benchmarks(void);
+void register_rand_benchmarks(void);
 void register_strconv_benchmarks(void);
 void register_strings_benchmarks(void);
 void register_crypto_benchmarks(void);
@@ -71,6 +72,7 @@ int main(int argc, char **argv) {
     register_select_benchmarks();
     register_slice_benchmarks();
     register_str_benchmarks();
+    register_rand_benchmarks();
     register_strconv_benchmarks();
     register_strings_benchmarks();
     register_crypto_benchmarks();

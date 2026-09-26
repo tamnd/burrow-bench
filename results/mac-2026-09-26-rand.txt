@@ -1,0 +1,51 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.7-4-g96a5b24
+bench      284628d-dirty
+pinned     no
+statistic  min of 5 runs
+filter     rand
+date       2026-09-26 14:42:49Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+rand2_pcg_dxsm                     3.22       0%         3.39       1%     0.95x
+rand2_chacha8                      2.96       1%         2.96       1%     1.00x
+rand2_chacha8_read                14.91       1%        16.04       0%     0.93x
+rand2_source_uint64                3.21       0%         3.39       0%     0.95x
+rand2_global_int64                 2.36       4%         4.00       1%     0.59x
+rand2_global_uint64                2.32       3%         3.95       2%     0.59x
+rand2_int64                        3.26       1%         3.46       1%     0.94x
+rand2_uint64                       3.21       1%         3.44       0%     0.93x
+rand2_global_intn1000              2.67       5%         4.31       2%     0.62x
+rand2_intn1000                     3.31       1%         3.54       1%     0.94x
+rand2_int64n1000                   3.32       0%         3.53       2%     0.94x
+rand2_int64n1e9                    3.30       3%         3.55       2%     0.93x
+rand2_int64n1e18                   4.05       1%         4.48       3%     0.90x
+rand2_int64n4e18                   6.42       0%         7.39       3%     0.87x
+rand2_int32n1000                   3.34       2%         3.50       2%     0.96x
+rand2_int32n2e9                    3.35       1%         3.54       4%     0.95x
+rand2_float32                      3.21       0%         3.44       1%     0.93x
+rand2_float64                      3.20       1%         3.44       0%     0.93x
+rand2_exp_float64                  4.36       4%         4.27       4%     1.02x
+rand2_norm_float64                 4.67       3%         4.54       2%     1.03x
+rand2_perm3                       13.04       3%        14.69      13%     0.89x
+rand_int63_threadsafe              3.39       2%         4.70       9%     0.72x
+rand_int63_unthreadsafe            1.15      12%         1.50       4%     0.77x
+rand_intn1000                      2.35       4%         3.06      14%     0.77x
+rand_int63n1000                    1.84       7%         2.50      11%     0.74x
+rand_int31n1000                    1.87       3%         2.51      10%     0.75x
+rand_float64                       1.34       5%         1.88       3%     0.72x
+rand_perm30                       76.73       7%       160.80       7%     0.48x
+rand_shuffle_overhead             69.30       1%       172.00       3%     0.40x
+rand_read3                         2.99       6%         4.86       4%     0.62x
+rand_read64                       22.03      16%        47.68       1%     0.46x
+rand_read1000                    304.62       1%       654.40       5%     0.47x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

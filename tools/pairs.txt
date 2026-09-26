@@ -450,3 +450,37 @@ textproto_read_mime_header_client      TextprotoReadMIMEHeaderClient
 textproto_read_mime_header_server      TextprotoReadMIMEHeaderServer
 textproto_uncommon                     TextprotoUncommon
 textproto_canonical_key                TextprotoCanonicalKey
+
+# math/rand and math/rand/v2, Go's own benchmarks from both packages.
+rand2_pcg_dxsm          Rand2PCG_DXSM
+rand2_chacha8           Rand2ChaCha8
+rand2_chacha8_read      Rand2ChaCha8Read
+rand2_source_uint64     Rand2SourceUint64
+rand2_global_int64      Rand2GlobalInt64
+rand2_global_uint64     Rand2GlobalUint64
+rand2_int64             Rand2Int64
+rand2_uint64            Rand2Uint64
+rand2_global_intn1000   Rand2GlobalIntN1000
+rand2_intn1000          Rand2IntN1000
+rand2_int64n1000        Rand2Int64N1000
+rand2_int64n1e9         Rand2Int64N1e9
+rand2_int64n1e18        Rand2Int64N1e18
+rand2_int64n4e18        Rand2Int64N4e18
+rand2_int32n1000        Rand2Int32N1000
+rand2_int32n2e9         Rand2Int32N2e9
+rand2_float32           Rand2Float32
+rand2_float64           Rand2Float64
+rand2_exp_float64       Rand2ExpFloat64
+rand2_norm_float64      Rand2NormFloat64
+rand2_perm3             Rand2Perm3
+rand_int63_threadsafe   RandInt63Threadsafe
+rand_int63_unthreadsafe RandInt63Unthreadsafe
+rand_intn1000           RandIntn1000
+rand_int63n1000         RandInt63n1000
+rand_int31n1000         RandInt31n1000
+rand_float64            RandFloat64
+rand_perm30             RandPerm30
+rand_shuffle_overhead   RandShuffleOverhead
+rand_read3              RandRead3
+rand_read64             RandRead64
+rand_read1000           RandRead1000

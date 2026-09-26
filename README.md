@@ -554,6 +554,12 @@ Every parse row is between 0.65x and 0.78x. Every string row is ahead too, from 
 
 Every row is ahead or level. Reading the client headers is 0.69x and the server headers 0.58x. `textproto_uncommon` is 0.84x and `textproto_canonical_key` is 0.97x, which is level within the noise of this run.
 
+`math/rand` and `math/rand/v2` are from the laptop, in [results/mac-2026-09-26-rand.txt](results/mac-2026-09-26-rand.txt). The rows are Go's own benchmarks from both packages, with `rand2_` for v2 and `rand_` for v1, and `go/rand_test.go` has them copied out with those prefixes. The v2 Rand rows draw from `New(NewPCG(1, 2))` and the v1 rows from `New(NewSource(1))`, as Go's do. The laptop had a load average around ten during the run, and the table is the minimum of five runs.
+
+Every row is ahead or level. The package level v2 functions gain the most, about 0.6x, because they call the runtime generator directly. The rows on a PCG source are 0.87x to 0.96x, and ChaCha8 is level at 2.96 nanoseconds a value. The v1 rows are 0.72x to 0.77x, and `Perm`, `Shuffle` and `Read` are between 0.40x and 0.62x. `rand2_exp_float64` and `rand2_norm_float64` are 1.02x and 1.03x, which is level within the noise of this run.
+
+Three fixes in burrow came out of the first run of these rows. ChaCha8 now runs its four blocks in vector lanes, which took it from 4.42 to 2.96 nanoseconds. PCG does its 128 bit step with `__int128` so the carry is an add with carry. The v1 source keeps two fields apart so Clang stops vectorizing their decrements, and the package level bounded functions call the runtime generator without checking the source type.
+
 Everything else arrives as the packages do.
 
 ## Licence
