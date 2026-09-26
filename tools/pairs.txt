@@ -441,3 +441,12 @@ url_string_plain                       URLStringPlain
 url_resolve_reference                  URLResolveReference
 url_encode_query                       URLEncodeQuery
 url_parse_query                        URLParseQuery
+
+# net/textproto. The first three are Go's own BenchmarkReadMIMEHeader and
+# BenchmarkUncommon, with one reader refilled every time round. The header
+# comes from an arena reset each time round in C. The canonical key row is new
+# on both sides.
+textproto_read_mime_header_client      TextprotoReadMIMEHeaderClient
+textproto_read_mime_header_server      TextprotoReadMIMEHeaderServer
+textproto_uncommon                     TextprotoUncommon
+textproto_canonical_key                TextprotoCanonicalKey
