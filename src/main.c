@@ -36,6 +36,7 @@ void register_str_benchmarks(void);
 void register_strconv_benchmarks(void);
 void register_strings_benchmarks(void);
 void register_crypto_benchmarks(void);
+void register_netip_benchmarks(void);
 void register_sort_benchmarks(void);
 void register_sync_atomic_benchmarks(void);
 void register_sync_benchmarks(void);
@@ -71,6 +72,7 @@ int main(int argc, char **argv) {
     register_strconv_benchmarks();
     register_strings_benchmarks();
     register_crypto_benchmarks();
+    register_netip_benchmarks();
     register_sort_benchmarks();
     register_sync_atomic_benchmarks();
     register_sync_benchmarks();

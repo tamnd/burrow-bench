@@ -381,3 +381,31 @@ sort_stable_int1k              StableInt1K
 sort_stable_int1k_slice        StableInt1K_Slice
 sort_int64k                    SortInt64K
 sort_int64k_slice              SortInt64K_Slice
+
+# net/netip. Go's own netip benchmarks, copied into go/netip_test.go since
+# Go keeps them inside the package. The rows that make a string reset an arena
+# each time round in C, and allocate a new string each time in Go.
+netip_parse_addr_v4                    NetipParseAddrV4
+netip_parse_addr_v6                    NetipParseAddrV6
+netip_parse_addr_v6_ellipsis           NetipParseAddrV6Ellipsis
+netip_parse_addr_v6_v4                 NetipParseAddrV6V4
+netip_parse_addr_v6_zone               NetipParseAddrV6Zone
+netip_addr_string_v4                   NetipAddrStringV4
+netip_addr_string_v6                   NetipAddrStringV6
+netip_addr_string_v6_ellipsis          NetipAddrStringV6Ellipsis
+netip_addr_string_v6_v4                NetipAddrStringV6V4
+netip_addr_string_v6_zone              NetipAddrStringV6Zone
+netip_addr_port_string_v4              NetipAddrPortStringV4
+netip_addr_port_string_v6              NetipAddrPortStringV6
+netip_addr_port_string_v6_ellipsis     NetipAddrPortStringV6Ellipsis
+netip_addr_port_string_v6_v4           NetipAddrPortStringV6V4
+netip_addr_port_string_v6_zone         NetipAddrPortStringV6Zone
+netip_parse_addr_port_v4               NetipParseAddrPortV4
+netip_parse_addr_port_v6               NetipParseAddrPortV6
+netip_parse_addr_port_v6_ellipsis      NetipParseAddrPortV6Ellipsis
+netip_parse_addr_port_v6_v4            NetipParseAddrPortV6V4
+netip_parse_addr_port_v6_zone          NetipParseAddrPortV6Zone
+netip_prefix_string                    NetipPrefixString
+netip_ipv4_contains                    NetipIPv4Contains
+netip_ipv6_contains                    NetipIPv6Contains
+netip_as16                             NetipAs16
