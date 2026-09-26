@@ -542,6 +542,10 @@ server3 had a load average of nine from other jobs while this ran, and the sprea
 
 Every row is ahead of Go. The typed sorts gain the most, `sort_string1k` at 0.29x and `sort_int1k` at 0.41x, and those are the rows where burrow runs a copy of pdqsort made for `Int` or `Str` with the comparison inlined. The stable sorts are around 0.5x. The closest are `sort_int1k_mod8` at 0.79x, which is mostly equal elements, and `sort_string1k_slice` at 0.72x, which calls a less function through a pointer on every comparison, as Go does.
 
+`net/netip` is from the laptop too, in [results/mac-2026-09-26-netip.txt](results/mac-2026-09-26-netip.txt). The rows are Go's own netip benchmarks, which Go keeps inside the package, so `go/netip_test.go` has them copied out through the public API with one function per input. The string rows in C take the string from an arena that is reset every time round, the same as the strings rows.
+
+Every parse row is between 0.65x and 0.78x. Every string row is ahead too, from 0.53x for the IPv6 forms with `::` in them to 0.90x for an IPv4-mapped address. `netip_as16` is the one row behind, 1.25 against 0.77 nanoseconds. The C row hands the 16 bytes to `bench_keep` through a pointer, which makes them go through memory, where Go stores them into a package variable. The run has not been split to find out how much of the gap that is.
+
 Everything else arrives as the packages do.
 
 ## Licence
