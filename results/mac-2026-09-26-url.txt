@@ -1,0 +1,45 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.6-5-g3903687-dirty
+bench      32f1d27-dirty
+pinned     no
+statistic  median of 5 runs
+filter     url_
+date       2026-09-26 08:24:54Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+url_query_escape_0                12.83       8%        16.22       1%     0.79x
+url_path_escape_0                 13.98       4%        18.16       1%     0.77x
+url_query_unescape_0              19.52      52%        26.74       4%     0.73x
+url_path_unescape_0               21.60      28%        27.87       3%     0.78x
+url_query_escape_1                32.95       5%        41.06      31%     0.80x
+url_path_escape_1                 30.74      18%        41.69       1%     0.74x
+url_query_unescape_1              48.45      22%        61.92       1%     0.78x
+url_path_unescape_1               51.38      91%        64.47       1%     0.80x
+url_query_escape_2                30.16       4%        37.53       1%     0.80x
+url_path_escape_2                 29.61      18%        37.08       2%     0.80x
+url_query_unescape_2              38.87      11%        64.00       4%     0.61x
+url_path_unescape_2               39.36      11%        66.11       2%     0.60x
+url_query_escape_3                67.19       4%        74.13       2%     0.91x
+url_path_escape_3                 60.19      16%        74.62       1%     0.81x
+url_query_unescape_3              81.40      13%       156.40       4%     0.52x
+url_path_unescape_3               81.38       8%       156.60       2%     0.52x
+url_query_escape_4               314.98       2%       474.70       1%     0.66x
+url_path_escape_4                270.87       6%       450.70       4%     0.60x
+url_query_unescape_4             424.83      15%       941.50       2%     0.45x
+url_path_unescape_4              451.50       6%       951.00       2%     0.47x
+url_parse_full                   186.35       5%       212.50       5%     0.88x
+url_parse_plain                   95.93       1%       111.10       3%     0.86x
+url_string_full                   51.33       3%        80.49       3%     0.64x
+url_string_plain                  37.50       4%        32.27       5%     1.16x
+url_resolve_reference             68.80      30%       108.10       4%     0.64x
+url_encode_query                  81.90       4%        92.78      35%     0.88x
+url_parse_query                  245.13       2%       282.90      30%     0.87x
+
+A spread above about ten percent means the machine was busy and the
+ratio next to it is not a measurement. Run it again somewhere quiet,
+or use -stat min, which is what the shared boxes need.
