@@ -37,6 +37,7 @@ void register_rand_benchmarks(void);
 void register_bzip2_benchmarks(void);
 void register_flate_benchmarks(void);
 void register_lzw_benchmarks(void);
+void register_regexp_benchmarks(void);
 void register_strconv_benchmarks(void);
 void register_strings_benchmarks(void);
 void register_crypto_benchmarks(void);
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
     register_bzip2_benchmarks();
     register_flate_benchmarks();
     register_lzw_benchmarks();
+    register_regexp_benchmarks();
     register_strconv_benchmarks();
     register_strings_benchmarks();
     register_crypto_benchmarks();

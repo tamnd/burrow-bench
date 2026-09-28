@@ -1,0 +1,80 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.9-4-g3071f7e
+bench      c599865-dirty
+pinned     no
+statistic  min of 5 runs
+filter     regexp_
+date       2026-09-28 10:48:39Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+regexp_find                       62.46       2%        89.56      14%     0.70x
+regexp_find_all_no_matches        32.49       5%        45.51      10%     0.71x
+regexp_find_all_ten_matches       869.22       3%      1394.00       9%     0.62x
+regexp_find_string                62.39       8%        85.33      10%     0.73x
+regexp_find_submatch              73.31       3%       102.20      59%     0.72x
+regexp_find_string_submatch        65.20      14%       101.30      45%     0.64x
+regexp_literal                    16.83       8%        31.18       6%     0.54x
+regexp_not_literal               337.90       6%       559.60       9%     0.60x
+regexp_match_class               604.32       2%       855.00       6%     0.71x
+regexp_match_class_in_range       588.37      12%      1249.00      80%     0.47x
+regexp_replace_all               336.22       3%       397.60      98%     0.85x
+regexp_anchored_literal_short_non_match         9.66       3%        17.35       6%     0.56x
+regexp_anchored_literal_long_non_match         9.69      11%        17.44       8%     0.56x
+regexp_anchored_short_match        21.15       8%        32.62       4%     0.65x
+regexp_anchored_long_match        22.13       4%        32.42       2%     0.68x
+regexp_onepass_short_a           124.38       4%       162.00       3%     0.77x
+regexp_not_onepass_short_a       180.23       5%       154.00       3%     1.17x
+regexp_onepass_short_b            85.51      10%       131.40       2%     0.65x
+regexp_not_onepass_short_b       102.18       2%       114.10      18%     0.90x
+regexp_onepass_long_prefix        18.77       6%        29.13       6%     0.64x
+regexp_onepass_long_not_prefix        58.23       4%        97.73       8%     0.60x
+regexp_quote_meta_all             15.87       6%        19.66       4%     0.81x
+regexp_quote_meta_none             8.62      12%        15.47       6%     0.56x
+regexp_compile_onepass          1429.53       9%      1290.00      96%     1.11x
+regexp_compile_medium           2930.28      82%      3150.00       8%     0.93x
+regexp_compile_hard            32790.20       6%     28929.00      10%     1.13x
+regexp_match_easy0_16              1.36       9%         1.61      19%     0.84x
+regexp_match_easy0_32             12.99       9%        19.38      83%     0.67x
+regexp_match_easy0_1k            157.05       2%       526.00      91%     0.30x
+regexp_match_easy0_32k          2553.65       9%      6094.00      92%     0.42x
+regexp_match_easy0_1m          93105.70       3%    250063.00      26%     0.37x
+regexp_match_easy0i_16             1.22       4%         3.16      52%     0.38x
+regexp_match_easy0i_32           287.44       3%       556.00      20%     0.52x
+regexp_match_easy0i_1k          8388.09       5%     14909.00     110%     0.56x
+regexp_match_easy0i_32k       346887.51       6%    684062.00      94%     0.51x
+regexp_match_easy0i_1m      11025500.00       4%  23567482.00      15%     0.47x
+regexp_match_easy1_16              1.14      10%         2.86      28%     0.40x
+regexp_match_easy1_32             11.14       3%        19.07      72%     0.58x
+regexp_match_easy1_1k            205.72       4%       248.60      19%     0.83x
+regexp_match_easy1_32k          9921.51       1%     14094.00       8%     0.70x
+regexp_match_easy1_1m         354201.33       5%    493504.00     121%     0.72x
+regexp_match_medium_16             1.19      23%         1.67      80%     0.71x
+regexp_match_medium_32           257.66      13%       339.00       9%     0.76x
+regexp_match_medium_1k          8967.63       3%     11010.00      50%     0.81x
+regexp_match_medium_32k       347149.28       6%    452909.00      50%     0.77x
+regexp_match_medium_1m      10992948.98       3%  14184767.00       4%     0.77x
+regexp_match_hard_16               1.18      13%         1.69       6%     0.70x
+regexp_match_hard_32             372.25      10%       446.30       6%     0.83x
+regexp_match_hard_1k           13394.42     140%     14097.00      20%     0.95x
+regexp_match_hard_32k         695861.20      84%   1207481.00      25%     0.58x
+regexp_match_hard_1m        23613647.06      68%  26077446.00      48%     0.91x
+regexp_match_hard1_16           1608.10     152%      1615.00     143%     1.00x
+regexp_match_hard1_32           2305.19      34%      4304.00      39%     0.54x
+regexp_match_hard1_1k          66244.67      22%     79156.00      29%     0.84x
+regexp_match_hard1_32k       2679047.23     102%   3150096.00     103%     0.85x
+regexp_match_hard1_1m       74251642.86      14% 182507381.00     126%     0.41x
+regexp_match_onepass_regex_16        73.61      14%       305.70      89%     0.24x
+regexp_match_onepass_regex_32       128.39      10%       405.30      98%     0.32x
+regexp_match_onepass_regex_1k      3481.01       9%     11601.00      90%     0.30x
+regexp_match_onepass_regex_32k    113896.41       6%    249869.00      26%     0.46x
+regexp_match_onepass_regex_1m   3441463.09       8%   8274501.00      28%     0.42x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

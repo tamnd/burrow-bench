@@ -568,6 +568,10 @@ Every encode row is ahead of Go, from 0.57x to 0.98x. Huffman only is closest to
 
 `compress/lzw` is from the laptop, in [results/mac-2026-09-28-lzw.txt](results/mac-2026-09-28-lzw.txt). The rows are Go's `BenchmarkDecoder` and `BenchmarkEncoder` on the digits of e at 1e4, 1e5 and 1e6 bytes, each once with a new reader or writer every time round and once reusing one through Reset. A first run of five had the two encode rows at 1e5 and 1e6 behind at 1.07x and 1.04x, with spreads of 83 and 112 percent. The laptop had a load average near ten, so the table in the file is from a second run with fifteen repetitions and the minimum of those. In that run every row is ahead, decode from 0.56x to 0.97x and encode from 0.56x to 0.80x. The spreads are still wide, so the ratios are rough.
 
+`regexp` is from the laptop, in [results/mac-2026-09-28-regexp.txt](results/mac-2026-09-28-regexp.txt). The 61 rows are Go's own regexp benchmarks from `all_test.go` and `exec_test.go`, with the same patterns and the same generated text for the match rows at 16 bytes, 32 bytes, 1k, 32k and 1m. Go's 32m sizes are left out because one run of them takes longer than the rest of the file, and the parallel benchmarks are left out because the harness has no parallel mode yet. The laptop had a load average between eight and sixteen during the run, so the table is the minimum of five runs and some spreads are above a hundred percent.
+
+58 of the 61 rows are ahead or level. The match rows are between 0.24x and 1.00x, with the one pass matcher gaining the most, 0.24x to 0.46x, and the literal prefix scan in `match_easy0` at 0.30x to 0.42x on the long inputs. The find and replace rows are 0.62x to 0.85x. Three rows are behind: `regexp_not_onepass_short_a` at 1.17x, and compiling at 1.11x for the one pass pattern and 1.13x for the hard one. None of the three has been profiled yet.
+
 Everything else arrives as the packages do.
 
 ## Licence
