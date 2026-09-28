@@ -1,0 +1,31 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.9-1-g9057988
+bench      ee9b2b6-dirty
+pinned     no
+statistic  min of 15 runs
+filter     lzw
+date       2026-09-28 07:00:42Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+lzw_decode_1e4                 34134.41      55%     38510.00     110%     0.89x
+lzw_decode_1e5                380894.18      43%    393902.00     166%     0.97x
+lzw_decode_1e6               3286370.37      68%   5863030.00     106%     0.56x
+lzw_decode_reuse_1e4           35890.80      13%     53889.00      62%     0.67x
+lzw_decode_reuse_1e5          382769.72      14%    510585.00      72%     0.75x
+lzw_decode_reuse_1e6         4062731.18       5%   4904128.00      10%     0.83x
+lzw_encode_1e4                 28822.01     118%     51868.00      55%     0.56x
+lzw_encode_1e5                514880.35      40%    871966.00      40%     0.59x
+lzw_encode_1e6               6680548.57       2%  10092192.00      36%     0.66x
+lzw_encode_reuse_1e4           27589.91      24%     46418.00      60%     0.59x
+lzw_encode_reuse_1e5          522054.83       6%    758290.00      59%     0.69x
+lzw_encode_reuse_1e6         6700435.03      24%   8364859.00     143%     0.80x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

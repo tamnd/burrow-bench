@@ -534,3 +534,22 @@ flate_decode_newton_default_1e6  FlateDecodeNewtonDefault1e6
 flate_decode_newton_compression_1e4  FlateDecodeNewtonCompression1e4
 flate_decode_newton_compression_1e5  FlateDecodeNewtonCompression1e5
 flate_decode_newton_compression_1e6  FlateDecodeNewtonCompression1e6
+
+# compress/bzip2, Go's BenchmarkDecodeDigits, BenchmarkDecodeNewton and BenchmarkDecodeRand.
+bzip2_decode_digits  Bzip2DecodeDigits
+bzip2_decode_newton  Bzip2DecodeNewton
+bzip2_decode_rand    Bzip2DecodeRand
+
+# compress/lzw, Go's BenchmarkDecoder and BenchmarkEncoder, one row per sub-benchmark.
+lzw_decode_1e4        LzwDecode1e4
+lzw_decode_1e5        LzwDecode1e5
+lzw_decode_1e6        LzwDecode1e6
+lzw_decode_reuse_1e4  LzwDecodeReuse1e4
+lzw_decode_reuse_1e5  LzwDecodeReuse1e5
+lzw_decode_reuse_1e6  LzwDecodeReuse1e6
+lzw_encode_1e4        LzwEncode1e4
+lzw_encode_1e5        LzwEncode1e5
+lzw_encode_1e6        LzwEncode1e6
+lzw_encode_reuse_1e4  LzwEncodeReuse1e4
+lzw_encode_reuse_1e5  LzwEncodeReuse1e5
+lzw_encode_reuse_1e6  LzwEncodeReuse1e6

@@ -1,0 +1,22 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.9-1-g9057988
+bench      ee9b2b6-dirty
+pinned     no
+statistic  min of 5 runs
+filter     bzip2
+date       2026-09-28 06:44:08Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+bzip2_decode_digits          3327759.31       2%   4141454.00      27%     0.80x
+bzip2_decode_newton         17424229.51       6%  24557582.00      57%     0.71x
+bzip2_decode_rand             697752.85      13%   1325130.00       6%     0.53x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

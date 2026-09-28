@@ -564,6 +564,10 @@ Four fixes in burrow came out of the first runs of these rows, in burrow #232, #
 
 Every encode row is ahead of Go, from 0.57x to 0.98x. Huffman only is closest to level, 0.93x to 0.98x, since there is no matching to win on there. Decoding the digits is ahead everywhere too, from 0.47x to 0.99x. Decoding the Newton text is where burrow is behind: the 1e4 rows are ahead, but at 1e5 and 1e6 Huffman only is 1.05x and 1.14x, best speed 1.08x and 1.19x, and the default level and best compression at 1e6 are 1.03x and 1.19x. The run has not been split to find out where that time goes yet.
 
+`compress/bzip2` is from the laptop, in [results/mac-2026-09-28-bzip2.txt](results/mac-2026-09-28-bzip2.txt). The rows are Go's `BenchmarkDecodeDigits`, `BenchmarkDecodeNewton` and `BenchmarkDecodeRand`, which decode the three .bz2 files from Go's `compress/bzip2/testdata`, copied into `testdata/`. Every row is ahead: 0.80x on the digits of e, 0.71x on Newton's Opticks and 0.53x on the random data. The table is the minimum of five runs.
+
+`compress/lzw` is from the laptop, in [results/mac-2026-09-28-lzw.txt](results/mac-2026-09-28-lzw.txt). The rows are Go's `BenchmarkDecoder` and `BenchmarkEncoder` on the digits of e at 1e4, 1e5 and 1e6 bytes, each once with a new reader or writer every time round and once reusing one through Reset. A first run of five had the two encode rows at 1e5 and 1e6 behind at 1.07x and 1.04x, with spreads of 83 and 112 percent. The laptop had a load average near ten, so the table in the file is from a second run with fifteen repetitions and the minimum of those. In that run every row is ahead, decode from 0.56x to 0.97x and encode from 0.56x to 0.80x. The spreads are still wide, so the ratios are rough.
+
 Everything else arrives as the packages do.
 
 ## Licence
