@@ -1,0 +1,67 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.8
+bench      0f064ec-dirty
+pinned     no
+statistic  min of 5 runs
+filter     flate
+date       2026-09-28 04:22:42Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+flate_encode_digits_huffman_1e4     10265.35       4%     10468.00       1%     0.98x
+flate_encode_digits_huffman_1e5     96147.78       4%     99907.00       2%     0.96x
+flate_encode_digits_huffman_1e6    970330.88       1%   1008973.00      14%     0.96x
+flate_encode_digits_speed_1e4     20120.32       2%     29482.00      91%     0.68x
+flate_encode_digits_speed_1e5    198477.58      10%    296489.00       7%     0.67x
+flate_encode_digits_speed_1e6   4385534.80      24%   4984018.00     123%     0.88x
+flate_encode_digits_default_1e4     33540.23      25%     48082.00       8%     0.70x
+flate_encode_digits_default_1e5    685115.30      28%    829658.00       2%     0.83x
+flate_encode_digits_default_1e6   7858782.31      39%   8976519.00       3%     0.88x
+flate_encode_digits_compression_1e4     67735.00      26%    118987.00       1%     0.57x
+flate_encode_digits_compression_1e5   3011022.94      19%   3297876.00       8%     0.91x
+flate_encode_digits_compression_1e6  30632555.56      25%  37855315.00      11%     0.81x
+flate_encode_newton_huffman_1e4     14368.03      22%     15451.00       3%     0.93x
+flate_encode_newton_huffman_1e5    112951.00      18%    120540.00       0%     0.94x
+flate_encode_newton_huffman_1e6   1192766.60       7%   1238042.00       1%     0.96x
+flate_encode_newton_speed_1e4     20467.12       1%     26194.00       4%     0.78x
+flate_encode_newton_speed_1e5    167765.60       5%    208671.00       5%     0.80x
+flate_encode_newton_speed_1e6   3462973.99       4%   3946723.00       1%     0.88x
+flate_encode_newton_default_1e4     30342.95       5%     40398.00       2%     0.75x
+flate_encode_newton_default_1e5    357908.09      19%    496720.00       3%     0.72x
+flate_encode_newton_default_1e6   5997316.94       4%   6828040.00      62%     0.88x
+flate_encode_newton_compression_1e4     73140.69       3%    106398.00       5%     0.69x
+flate_encode_newton_compression_1e5   3675355.48       2%   3795831.00       2%     0.97x
+flate_encode_newton_compression_1e6  41666851.85       2%  43266782.00      87%     0.96x
+flate_decode_digits_huffman_1e4     53164.10       5%     95838.00      28%     0.55x
+flate_decode_digits_huffman_1e5    515588.24       5%    804049.00      12%     0.64x
+flate_decode_digits_huffman_1e6   5218695.65       6%  10073410.00      19%     0.52x
+flate_decode_digits_speed_1e4     51777.13       2%     65461.00      26%     0.79x
+flate_decode_digits_speed_1e5    506587.96       3%    581851.00       6%     0.87x
+flate_decode_digits_speed_1e6   5346456.14       1%   5658313.00       1%     0.94x
+flate_decode_digits_default_1e4     43353.54       2%     55954.00       7%     0.77x
+flate_decode_digits_default_1e5    462706.79       2%    486733.00       6%     0.95x
+flate_decode_digits_default_1e6   4885802.69       9%   4917579.00      18%     0.99x
+flate_decode_digits_compression_1e4     50731.13       3%    106819.00      23%     0.47x
+flate_decode_digits_compression_1e5    574898.81       6%    861736.00      11%     0.67x
+flate_decode_digits_compression_1e6   6003740.96       4%   8789441.00      19%     0.68x
+flate_decode_newton_huffman_1e4     61844.95       3%     77895.00      49%     0.79x
+flate_decode_newton_huffman_1e5    630687.61       6%    598490.00       4%     1.05x
+flate_decode_newton_huffman_1e6   6687248.59       6%   5845287.00       2%     1.14x
+flate_decode_newton_speed_1e4     36629.34       5%     41468.00      46%     0.88x
+flate_decode_newton_speed_1e5    428336.51       6%    396795.00      15%     1.08x
+flate_decode_newton_speed_1e6   5230349.78      13%   4392940.00      16%     1.19x
+flate_decode_newton_default_1e4     29722.38      19%     44479.00      84%     0.67x
+flate_decode_newton_default_1e5    315390.28      18%    439564.00      58%     0.72x
+flate_decode_newton_default_1e6   4096996.53       4%   3994404.00      55%     1.03x
+flate_decode_newton_compression_1e4     34248.06      24%     36444.00       4%     0.94x
+flate_decode_newton_compression_1e5    297200.93      15%    302906.00       1%     0.98x
+flate_decode_newton_compression_1e6   3982209.46       3%   3345880.00       1%     1.19x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

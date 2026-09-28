@@ -560,6 +560,10 @@ Every row is ahead or level. The package level v2 functions gain the most, about
 
 Four fixes in burrow came out of the first runs of these rows, in burrow #232, #233 and #234. ChaCha8 now runs its four blocks in vector lanes, which took it from 4.42 to 2.96 nanoseconds. PCG does its 128 bit step with `__int128` so the carry is an add with carry. The v1 source keeps two fields apart so Clang stops vectorizing their decrements, and the package level bounded functions call the runtime generator without checking the source type.
 
+`compress/flate` is from the laptop, in [results/mac-2026-09-28-flate.txt](results/mac-2026-09-28-flate.txt). The rows are Go's own `BenchmarkEncode` and `BenchmarkDecode`, on the same two inputs Go uses: the digits of e from `testdata/e.txt` and the text of Newton's Opticks from `testdata/Isaac.Newton-Opticks.txt`, cut to 1e4, 1e5 and 1e6 bytes, at Huffman only, best speed, the default level and best compression. `go/flate_test.go` has one function per row. I was building other things on the laptop during the run, so some spreads are wide and the table is the minimum of five runs.
+
+Every encode row is ahead of Go, from 0.57x to 0.98x. Huffman only is closest to level, 0.93x to 0.98x, since there is no matching to win on there. Decoding the digits is ahead everywhere too, from 0.47x to 0.99x. Decoding the Newton text is where burrow is behind: the 1e4 rows are ahead, but at 1e5 and 1e6 Huffman only is 1.05x and 1.14x, best speed 1.08x and 1.19x, and the default level and best compression at 1e6 are 1.03x and 1.19x. The run has not been split to find out where that time goes yet.
+
 Everything else arrives as the packages do.
 
 ## Licence
