@@ -1,0 +1,40 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.9-4-g3071f7e-dirty
+bench      9912f43-dirty
+pinned     no
+statistic  min of 5 runs
+filter     big_
+date       2026-09-28 12:20:49Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+big_add_10                        13.76       2%         9.68      21%     1.42x
+big_add_1000                     349.55      15%       295.70      12%     1.18x
+big_mul_10                        55.24       8%        88.58     105%     0.62x
+big_mul_100                     3637.89      85%      4584.00      87%     0.79x
+big_mul_1000                  137855.66      21%    157789.00      38%     0.87x
+big_quo_10                       394.35       5%       289.60      99%     1.36x
+big_quo_100                     7390.45      15%      7318.00      57%     1.01x
+big_quo_1000                  236811.07       3%    272122.00      83%     0.87x
+big_sqr_100                     1739.93       3%      2432.00      62%     0.72x
+big_sqr_1000                   74544.30       2%     72469.00     106%     1.03x
+big_sqrt_100                   28136.99       1%     22152.00      21%     1.27x
+big_gcd_10                      2197.42       1%      2518.00       6%     0.87x
+big_gcd_100                    36408.10       1%     40249.00      12%     0.90x
+big_mod_inverse_32             11880.40       0%     11092.00      26%     1.07x
+big_exp_mod_32               1781974.78       3%   1841722.00       3%     0.97x
+big_string_10                    643.96      74%       558.20       1%     1.15x
+big_string_100                 11361.21      31%      8952.00       3%     1.27x
+big_string_1000               299850.92       3%    239380.00       3%     1.25x
+big_set_string_10                604.24       7%       955.70       3%     0.63x
+big_set_string_1000           215734.92       2%    239100.00      18%     0.90x
+big_probably_prime_521       1964335.55      42%   1815310.00      11%     1.08x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

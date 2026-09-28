@@ -574,6 +574,10 @@ Every encode row is ahead of Go, from 0.57x to 0.98x. Huffman only is closest to
 
 Everything else arrives as the packages do.
 
+`math/big` is from the laptop, in [results/mac-2026-09-28-big.txt](results/mac-2026-09-28-big.txt). There are 21 rows over `Int`. Both sides fill their operands from the same splitmix64 stream with the same seeds, so they work on the same numbers, and every row reuses one receiver across iterations, the way a Go program would. The number at the end of a name is the size of the operands in 64 bit words, chosen to fall on both sides of the places where the code changes strategy: schoolbook against Karatsuba multiplication, and short against recursive division. The laptop was busy during the run, so the table is the minimum of five runs and a few spreads are high.
+
+The first run of this file had burrow three to four times slower than Go on almost every row. The word loops that everything else is built on were reading the vector length back through memory after each word and building each carry out of bit operations. After rewriting them to keep the length in a register, use the compiler's add with carry builtins and split the multiply and add loop into two carry chains, 12 of the 21 rows are ahead or level. Multiplication is 0.62x to 0.87x, `exp_mod_32`, a 2048 bit modular exponentiation, is 0.97x, and GCD is 0.87x to 0.90x. The nine rows still behind are `add_10` at 1.42x, `quo_10` at 1.36x, `sqrt_100` at 1.27x, conversion to decimal at 1.15x to 1.27x, `add_1000` at 1.18x, `probably_prime_521` at 1.08x and `mod_inverse_32` at 1.07x. None of those has been profiled yet.
+
 ## Licence
 
 BSD-3-Clause, matching burrow and Go. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

@@ -617,3 +617,27 @@ regexp_match_onepass_regex_32            RegexpMatchOnepassRegex_32
 regexp_match_onepass_regex_1k            RegexpMatchOnepassRegex_1K
 regexp_match_onepass_regex_32k           RegexpMatchOnepassRegex_32K
 regexp_match_onepass_regex_1m            RegexpMatchOnepassRegex_1M
+
+# math/big Int, operands from the same splitmix64 stream on both sides. The
+# number is the operand size in 64 bit words.
+big_add_10                               BigAdd10
+big_add_1000                             BigAdd1000
+big_mul_10                               BigMul10
+big_mul_100                              BigMul100
+big_mul_1000                             BigMul1000
+big_quo_10                               BigQuo10
+big_quo_100                              BigQuo100
+big_quo_1000                             BigQuo1000
+big_sqr_100                              BigSqr100
+big_sqr_1000                             BigSqr1000
+big_sqrt_100                             BigSqrt100
+big_gcd_10                               BigGCD10
+big_gcd_100                              BigGCD100
+big_mod_inverse_32                       BigModInverse32
+big_exp_mod_32                           BigExpMod32
+big_string_10                            BigString10
+big_string_100                           BigString100
+big_string_1000                          BigString1000
+big_set_string_10                        BigSetString10
+big_set_string_1000                      BigSetString1000
+big_probably_prime_521                   BigProbablyPrime521
