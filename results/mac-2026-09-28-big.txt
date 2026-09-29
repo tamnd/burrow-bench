@@ -2,37 +2,45 @@ machine    USERnoMacBook-Air.local
 os         Darwin arm64
 cpu        Apple M4
 compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
-burrow     v0.1.9-4-g3071f7e-dirty
-bench      9912f43-dirty
+burrow     v0.1.10-dirty
+bench      a0fe7a2-dirty
 pinned     no
 statistic  min of 5 runs
 filter     big_
-date       2026-09-28 12:20:49Z
+date       2026-09-28 13:51:22Z
 go         go1.27.1
 
 benchmark                     burrow ns   spread        go ns   spread    ratio
 -------------------------- ------------ -------- ------------ -------- --------
-big_add_10                        13.76       2%         9.68      21%     1.42x
-big_add_1000                     349.55      15%       295.70      12%     1.18x
-big_mul_10                        55.24       8%        88.58     105%     0.62x
-big_mul_100                     3637.89      85%      4584.00      87%     0.79x
-big_mul_1000                  137855.66      21%    157789.00      38%     0.87x
-big_quo_10                       394.35       5%       289.60      99%     1.36x
-big_quo_100                     7390.45      15%      7318.00      57%     1.01x
-big_quo_1000                  236811.07       3%    272122.00      83%     0.87x
-big_sqr_100                     1739.93       3%      2432.00      62%     0.72x
-big_sqr_1000                   74544.30       2%     72469.00     106%     1.03x
-big_sqrt_100                   28136.99       1%     22152.00      21%     1.27x
-big_gcd_10                      2197.42       1%      2518.00       6%     0.87x
-big_gcd_100                    36408.10       1%     40249.00      12%     0.90x
-big_mod_inverse_32             11880.40       0%     11092.00      26%     1.07x
-big_exp_mod_32               1781974.78       3%   1841722.00       3%     0.97x
-big_string_10                    643.96      74%       558.20       1%     1.15x
-big_string_100                 11361.21      31%      8952.00       3%     1.27x
-big_string_1000               299850.92       3%    239380.00       3%     1.25x
-big_set_string_10                604.24       7%       955.70       3%     0.63x
-big_set_string_1000           215734.92       2%    239100.00      18%     0.90x
-big_probably_prime_521       1964335.55      42%   1815310.00      11%     1.08x
+big_add_10                        15.54       2%         8.31       6%     1.87x
+big_add_1000                     350.00       0%       312.40      24%     1.12x
+big_mul_10                        57.72       2%        71.08      14%     0.81x
+big_mul_100                     2577.06       7%      3056.00       3%     0.84x
+big_mul_1000                  106829.40       1%    115299.00      16%     0.93x
+big_quo_10                       407.08      42%       237.80       2%     1.71x
+big_quo_100                     8170.98      41%      5486.00       2%     1.49x
+big_quo_1000                  265105.58     152%    223470.00       4%     1.19x
+big_sqr_100                     1816.76      18%      1750.00       2%     1.04x
+big_sqr_1000                   80938.98       4%     73793.00       2%     1.10x
+big_sqrt_100                   28414.15       2%     20829.00       1%     1.36x
+big_gcd_10                      2593.11       1%      2189.00       2%     1.18x
+big_gcd_100                    38216.53       1%     34177.00       2%     1.12x
+big_mod_inverse_32             14018.27       2%     11166.00       2%     1.26x
+big_exp_mod_32               1695397.71       7%   1859066.00       4%     0.91x
+big_string_10                    660.24       2%       561.20       2%     1.18x
+big_string_100                 11658.71       8%      9143.00      25%     1.28x
+big_string_1000               311644.15      14%    240086.00      14%     1.30x
+big_set_string_10                690.07      12%       969.90      18%     0.71x
+big_set_string_1000           234714.62       9%    246938.00      25%     0.95x
+big_probably_prime_521       2076591.38       5%   1669040.00      54%     1.24x
+big_rat_add_4                   2398.70      11%      2176.00      27%     1.10x
+big_rat_add_100               133748.01       9%    134747.00       8%     0.99x
+big_rat_mul_4                   2468.57      11%      1947.00      59%     1.27x
+big_rat_mul_100               132292.05       1%    104471.00       1%     1.27x
+big_rat_harmonic_100           48667.39       4%     34682.00       3%     1.40x
+big_rat_float64_4                162.04       8%       112.90       6%     1.44x
+big_rat_float_string_4           716.35       6%       485.20       2%     1.48x
+big_rat_set_string              1231.66       3%      1030.00       1%     1.20x
 
 Minimum of the runs, not the median, so these survive a busy machine
 better than the spread column next to them suggests. A spread in the

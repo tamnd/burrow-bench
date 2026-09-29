@@ -197,6 +197,168 @@ BENCH(big_probably_prime_521) {
     big_int_free(&p);
 }
 
+/* Rat. The operands are fractions of two n word numbers, so every add and
+ * multiply ends in a GCD of numbers about twice that size. */
+static void rnd_rat(BigRat *z, Int n, uint64_t seed) {
+    BigInt num = {0}, den = {0};
+    rnd(&num, n, seed);
+    rnd(&den, n, seed + 100);
+    big_rat_set_frac(z, &num, &den);
+    big_int_free(&num);
+    big_int_free(&den);
+}
+
+typedef BigRat *(*RatOp)(BigRat *z, const BigRat *x, const BigRat *y);
+
+static void rat_binop(Bench *b, RatOp op, Int n) {
+    BigRat x = {0}, y = {0}, z = {0};
+    rnd_rat(&x, n, 1);
+    rnd_rat(&y, n, 2);
+    BENCH_LOOP(b) {
+        op(&z, &x, &y);
+    }
+    bench_keep_u64(big_int_bit_len(big_rat_num(&z)));
+    big_rat_free(&x);
+    big_rat_free(&y);
+    big_rat_free(&z);
+}
+
+BENCH(big_rat_add_4) {
+    rat_binop(b, big_rat_add, 4);
+}
+BENCH(big_rat_add_100) {
+    rat_binop(b, big_rat_add, 100);
+}
+BENCH(big_rat_mul_4) {
+    rat_binop(b, big_rat_mul, 4);
+}
+BENCH(big_rat_mul_100) {
+    rat_binop(b, big_rat_mul, 100);
+}
+
+/* The sum of 1/k for k up to 100, from zero each time: many small adds whose
+ * denominator grows to about 140 bits. */
+BENCH(big_rat_harmonic_100) {
+    BigRat h = {0}, t = {0};
+    BENCH_LOOP(b) {
+        big_rat_set_int64(&h, 0);
+        for (int64_t k = 1; k <= 100; k++)
+            big_rat_add(&h, &h, big_rat_set_frac64(&t, 1, k));
+    }
+    bench_keep_u64(big_int_bit_len(big_rat_denom(&h)));
+    big_rat_free(&h);
+    big_rat_free(&t);
+}
+
+BENCH(big_rat_float64_4) {
+    BigRat x = {0};
+    rnd_rat(&x, 4, 1);
+    double sum = 0;
+    BENCH_LOOP(b) {
+        sum += big_rat_float64(&x, NULL);
+    }
+    bench_keep_u64((uint64_t)sum);
+    big_rat_free(&x);
+}
+
+BENCH(big_rat_float_string_4) {
+    BigRat x = {0};
+    rnd_rat(&x, 4, 1);
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    BENCH_LOOP(b) {
+        bench_keep_u64((uint64_t)big_rat_float_string(&x, a, 50).len);
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+    big_rat_free(&x);
+}
+
+BENCH(big_rat_set_string) {
+    BigRat x = {0};
+    Str s = BURROW_S("3.14159265358979323846264338327950288419716939937510e-10");
+    BENCH_LOOP(b) {
+        big_rat_set_string(&x, s, NULL);
+    }
+    bench_keep_u64(big_int_bit_len(big_rat_denom(&x)));
+    big_rat_free(&x);
+}
+
+/* Float, at the given precision in bits. The operands are random n bit
+ * mantissas with the exponent near 0, from the same stream as the Ints. */
+static void rnd_float(BigFloat *z, Uint prec, uint64_t seed) {
+    BigInt m = {0};
+    rnd(&m, (Int)(prec / 64) + 1, seed);
+    big_float_set_prec(z, prec);
+    big_float_set_int(z, &m);
+    big_float_set_mant_exp(z, z, -(Int)big_int_bit_len(&m));
+    big_int_free(&m);
+}
+
+typedef BigFloat *(*FloatOp)(BigFloat *z, const BigFloat *x, const BigFloat *y);
+
+static void float_binop(Bench *b, FloatOp op, Uint prec) {
+    BigFloat x = {0}, y = {0}, z = {0};
+    rnd_float(&x, prec, 1);
+    rnd_float(&y, prec, 2);
+    big_float_set_prec(&z, prec);
+    BENCH_LOOP(b) {
+        op(&z, &x, &y);
+    }
+    bench_keep_u64((uint64_t)big_float_mant_exp(&z, NULL));
+    big_float_free(&x);
+    big_float_free(&y);
+    big_float_free(&z);
+}
+
+BENCH(big_float_add_1000) {
+    float_binop(b, big_float_add, 1000);
+}
+BENCH(big_float_mul_1000) {
+    float_binop(b, big_float_mul, 1000);
+}
+BENCH(big_float_quo_1000) {
+    float_binop(b, big_float_quo, 1000);
+}
+
+BENCH(big_float_sqrt_1000) {
+    BigFloat x = {0}, z = {0};
+    rnd_float(&x, 1000, 1);
+    big_float_set_prec(&z, 1000);
+    BENCH_LOOP(b) {
+        big_float_sqrt(&z, &x);
+    }
+    bench_keep_u64((uint64_t)big_float_mant_exp(&z, NULL));
+    big_float_free(&x);
+    big_float_free(&z);
+}
+
+BENCH(big_float_text_1000) {
+    BigFloat x = {0};
+    rnd_float(&x, 1000, 1);
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    BENCH_LOOP(b) {
+        bench_keep_u64((uint64_t)big_float_text(&x, a, 'g', 50).len);
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+    big_float_free(&x);
+}
+
+BENCH(big_float_set_string) {
+    BigFloat x = {0};
+    big_float_set_prec(&x, 200);
+    Str s = BURROW_S("3.14159265358979323846264338327950288419716939937510e-10");
+    BENCH_LOOP(b) {
+        big_float_set_string(&x, s, NULL);
+    }
+    bench_keep_u64((uint64_t)big_float_mant_exp(&x, NULL));
+    big_float_free(&x);
+}
+
 void register_big_benchmarks(void);
 void register_big_benchmarks(void) {
     BENCH_RUN(big_add_10);
@@ -220,4 +382,18 @@ void register_big_benchmarks(void) {
     BENCH_RUN(big_set_string_10);
     BENCH_RUN(big_set_string_1000);
     BENCH_RUN(big_probably_prime_521);
+    BENCH_RUN(big_rat_add_4);
+    BENCH_RUN(big_rat_add_100);
+    BENCH_RUN(big_rat_mul_4);
+    BENCH_RUN(big_rat_mul_100);
+    BENCH_RUN(big_rat_harmonic_100);
+    BENCH_RUN(big_rat_float64_4);
+    BENCH_RUN(big_rat_float_string_4);
+    BENCH_RUN(big_rat_set_string);
+    BENCH_RUN(big_float_add_1000);
+    BENCH_RUN(big_float_mul_1000);
+    BENCH_RUN(big_float_quo_1000);
+    BENCH_RUN(big_float_sqrt_1000);
+    BENCH_RUN(big_float_text_1000);
+    BENCH_RUN(big_float_set_string);
 }

@@ -641,3 +641,23 @@ big_string_1000                          BigString1000
 big_set_string_10                        BigSetString10
 big_set_string_1000                      BigSetString1000
 big_probably_prime_521                   BigProbablyPrime521
+
+# math/big Rat, fractions of two numbers of the given size in words, from the
+# same splitmix64 stream on both sides.
+big_rat_add_4                            BigRatAdd4
+big_rat_add_100                          BigRatAdd100
+big_rat_mul_4                            BigRatMul4
+big_rat_mul_100                          BigRatMul100
+big_rat_harmonic_100                     BigRatHarmonic100
+big_rat_float64_4                        BigRatFloat64_4
+big_rat_float_string_4                   BigRatFloatString4
+big_rat_set_string                       BigRatSetString
+
+# math/big Float, at the given precision in bits, with random mantissas from
+# the same stream as the Ints.
+big_float_add_1000                       BigFloatAdd1000
+big_float_mul_1000                       BigFloatMul1000
+big_float_quo_1000                       BigFloatQuo1000
+big_float_sqrt_1000                      BigFloatSqrt1000
+big_float_text_1000                      BigFloatText1000
+big_float_set_string                     BigFloatSetString
