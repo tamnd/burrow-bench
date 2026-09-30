@@ -115,3 +115,56 @@ func BenchmarkXMLEncodeTokens(b *testing.B) {
 		}
 	}
 }
+
+type thumb struct {
+	Url   string `xml:"url,attr"`
+	Width int    `xml:"width,attr"`
+}
+
+type entry struct {
+	Id        int    `xml:"id,attr"`
+	Lang      string `xml:"lang,attr"`
+	Title     string `xml:"title"`
+	Thumbnail thumb  `xml:"http://search.yahoo.com/mrss/ thumbnail"`
+	Summary   string `xml:"summary"`
+}
+
+type feed struct {
+	XMLName xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
+	Entry   []entry  `xml:"entry"`
+}
+
+func xmlFeed() *feed {
+	f := &feed{}
+	for i := 0; i < 100; i++ {
+		f.Entry = append(f.Entry, entry{
+			Id:        i,
+			Lang:      "en",
+			Title:     fmt.Sprintf("Item %d & friends", i),
+			Thumbnail: thumb{fmt.Sprintf("https://example.com/%d.jpg", i), 120},
+			Summary:   fmt.Sprintf("Green tea, loose leaf, %d grams.", 50+i),
+		})
+	}
+	return f
+}
+
+func BenchmarkXMLMarshal(b *testing.B) {
+	f := xmlFeed()
+	for b.Loop() {
+		out, err := xml.Marshal(f)
+		if err != nil {
+			b.Fatal(err)
+		}
+		sinkXMLInt = len(out)
+	}
+}
+
+func BenchmarkXMLEncodeStruct(b *testing.B) {
+	f := xmlFeed()
+	for b.Loop() {
+		e := xml.NewEncoder(io.Discard)
+		if err := e.Encode(f); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

@@ -9,6 +9,10 @@
  * decoder, where Go's names are strings of their own, so the list is copied
  * into an arena on the C side the way Go keeps them without asking.
  *
+ * xml_marshal writes a struct holding the same 100 entries with Marshal, and
+ * xml_encode_struct writes it through an Encoder to a discard writer, so the
+ * second row leaves out the growing of the output buffer.
+ *
  * Copyright 2026 The burrow Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style licence that can be found
  * in the LICENSE file. */
@@ -17,10 +21,12 @@
 
 #include "burrow/bytes.h"
 #include "burrow/core.h"
+#include "burrow/declare.h"
 #include "burrow/encoding/xml.h"
 #include "burrow/io.h"
 #include "burrow/mem/arena.h"
 #include "burrow/mem/heap.h"
+#include "burrow/slice.h"
 
 #include <stdio.h>
 
@@ -57,7 +63,8 @@ BENCH(xml_raw_tokens) {
     BytesReader r;
     BENCH_LOOP(b) {
         bytes_reader_reset(&r, doc);
-        XmlDecoder *d = xml_new_decoder(heap_allocator(), bytes_reader_as_io_reader(&r));
+        XmlDecoder *d =
+            xml_new_decoder(heap_allocator(), bytes_reader_as_io_reader(&r));
         Error err = BURROW_NO_ERROR;
         uint64_t n = 0;
         for (;;) {
@@ -76,7 +83,8 @@ BENCH(xml_tokens) {
     BytesReader r;
     BENCH_LOOP(b) {
         bytes_reader_reset(&r, doc);
-        XmlDecoder *d = xml_new_decoder(heap_allocator(), bytes_reader_as_io_reader(&r));
+        XmlDecoder *d =
+            xml_new_decoder(heap_allocator(), bytes_reader_as_io_reader(&r));
         Error err = BURROW_NO_ERROR;
         uint64_t n = 0;
         for (;;) {
@@ -118,7 +126,8 @@ BENCH(xml_encode_tokens) {
     }
     xml_decoder_free(d);
     BENCH_LOOP(b) {
-        XmlEncoder *e = xml_new_encoder(heap_allocator(), (IoWriter){&discard_vt, NULL});
+        XmlEncoder *e =
+            xml_new_encoder(heap_allocator(), (IoWriter){&discard_vt, NULL});
         for (Int i = 0; i < ntoks; i++)
             xml_encoder_encode_token(e, toks[i]);
         bench_keep_u64((uint64_t)BURROW_FAILED(xml_encoder_flush(e)));
@@ -127,10 +136,84 @@ BENCH(xml_encode_tokens) {
     arena_free(&ar);
 }
 
+/* The feed as structs. The field tags give the element names and the
+ * namespaces the document above has. */
+#define THUMB_FIELDS(F, T)                                                             \
+    F(T, Str, Url, "xml:\"url,attr\"")                                                 \
+    F(T, Int, Width, "xml:\"width,attr\"")
+BURROW_STRUCT(Thumb, THUMB_FIELDS);
+
+#define ENTRY_FIELDS(F, T)                                                             \
+    F(T, Int, Id, "xml:\"id,attr\"")                                                   \
+    F(T, Str, Lang, "xml:\"lang,attr\"")                                               \
+    F(T, Str, Title, "xml:\"title\"")                                                  \
+    F(T, Thumb, Thumbnail, "xml:\"http://search.yahoo.com/mrss/ thumbnail\"")          \
+    F(T, Str, Summary, "xml:\"summary\"")
+BURROW_STRUCT(Entry, ENTRY_FIELDS);
+BURROW_SLICE_TYPE(Entries, Entry);
+
+#define FEED_FIELDS(F, T)                                                              \
+    F(T, XmlName, XMLName, "xml:\"http://www.w3.org/2005/Atom feed\"")                 \
+    F(T, Entries, Entry, "xml:\"entry\"")
+BURROW_STRUCT(Feed, FEED_FIELDS);
+
+static Entry entries[XB_N];
+static char entry_text[XB_N][3][64];
+static Feed feed;
+
+static Str put(char *buf, int n) {
+    return (Str){(const Byte *)buf, n};
+}
+
+/* The same values xml_test.go builds. */
+static void build_feed(void) {
+    if (feed.Entry.len > 0)
+        return;
+    for (int i = 0; i < XB_N; i++) {
+        Entry *e = &entries[i];
+        e->Id = i;
+        e->Lang = BURROW_S("en");
+        e->Title = put(entry_text[i][0],
+                       snprintf(entry_text[i][0], 64, "Item %d & friends", i));
+        e->Thumbnail.Url =
+            put(entry_text[i][1],
+                snprintf(entry_text[i][1], 64, "https://example.com/%d.jpg", i));
+        e->Thumbnail.Width = 120;
+        e->Summary =
+            put(entry_text[i][2], snprintf(entry_text[i][2], 64,
+                                           "Green tea, loose leaf, %d grams.", 50 + i));
+    }
+    feed.Entry = slice_from(entries, XB_N, XB_N, TYPE_OF(Entry));
+}
+
+BENCH(xml_marshal) {
+    build_feed();
+    Any v = BURROW_ANY(TYPE_OF(Feed), &feed);
+    BENCH_LOOP(b) {
+        Error err = BURROW_NO_ERROR;
+        Slice out = xml_marshal(heap_allocator(), v, &err);
+        bench_keep_u64((uint64_t)out.len);
+        mem_free(heap_allocator(), out.p, (size_t)out.cap, 1);
+    }
+}
+
+BENCH(xml_encode_struct) {
+    build_feed();
+    Any v = BURROW_ANY(TYPE_OF(Feed), &feed);
+    BENCH_LOOP(b) {
+        XmlEncoder *e =
+            xml_new_encoder(heap_allocator(), (IoWriter){&discard_vt, NULL});
+        bench_keep_u64((uint64_t)BURROW_FAILED(xml_encoder_encode(e, v)));
+        xml_encoder_free(e);
+    }
+}
+
 void register_xml_benchmarks(void);
 
 void register_xml_benchmarks(void) {
     BENCH_RUN(xml_raw_tokens);
     BENCH_RUN(xml_tokens);
     BENCH_RUN(xml_encode_tokens);
+    BENCH_RUN(xml_marshal);
+    BENCH_RUN(xml_encode_struct);
 }

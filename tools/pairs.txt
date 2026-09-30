@@ -677,3 +677,6 @@ json_v1_decoder                        JSONV1Decoder
 xml_raw_tokens                         XMLRawTokens
 xml_tokens                             XMLTokens
 xml_encode_tokens                      XMLEncodeTokens
+# encoding/xml Marshal, the same feed as structs.
+xml_marshal                            XMLMarshal
+xml_encode_struct                      XMLEncodeStruct
