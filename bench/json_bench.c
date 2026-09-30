@@ -1,11 +1,14 @@
-/* encoding/json/jsontext and encoding/json/v2, on one document both sides
+/* encoding/json/jsontext, encoding/json/v2 and encoding/json, on one document both sides
  * build the same way: an array of 100 small objects, about 8KB.
  *
  * The jsontext rows check it, compact an indented copy of it, and read it a
  * token at a time. The v2 rows marshal the same data from a slice of structs
  * and unmarshal it back into one, and into an Any the way Go does into an
- * any. Everything a row makes comes from an arena that is reset every time
- * round.
+ * any. The v1 rows do the struct marshal and unmarshal again through
+ * encoding/json, and decode the document through a v1 Decoder. burrow's v1 is
+ * a layer over its v2, while Go's v1 is its own older code unless the jsonv2
+ * experiment is on, so those rows compare two different designs. Everything a
+ * row makes comes from an arena that is reset every time round.
  *
  * Copyright 2026 The burrow Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style licence that can be found
@@ -16,6 +19,7 @@
 #include "burrow/bytes.h"
 #include "burrow/core.h"
 #include "burrow/declare.h"
+#include "burrow/encoding/json.h"
 #include "burrow/encoding/json/jsontext.h"
 #include "burrow/encoding/json/v2.h"
 #include "burrow/mem/arena.h"
@@ -151,6 +155,58 @@ BENCH(json_unmarshal_any) {
     arena_free(&ar);
 }
 
+BENCH(json_v1_marshal_struct) {
+    build_doc();
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    JbItems items = {0};
+    Error err = json_unmarshal(heap_allocator(), doc, BURROW_ANY(TYPE_OF(JbItems), &items));
+    if (BURROW_FAILED(err))
+        return;
+    BENCH_LOOP(b) {
+        Error merr = BURROW_NO_ERROR;
+        Slice out = json_marshal(a, BURROW_ANY(TYPE_OF(JbItems), &items), &merr);
+        bench_keep(out.p);
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+}
+
+BENCH(json_v1_unmarshal_struct) {
+    build_doc();
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    BENCH_LOOP(b) {
+        JbItems items = {0};
+        Error err = json_unmarshal(a, doc, BURROW_ANY(TYPE_OF(JbItems), &items));
+        bench_keep_u64((uint64_t)BURROW_FAILED(err));
+        bench_keep(items.p);
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+}
+
+BENCH(json_v1_decoder) {
+    build_doc();
+    Arena ar;
+    arena_init(&ar, NULL, 0);
+    Alloc *a = arena_allocator(&ar);
+    BytesReader r;
+    BENCH_LOOP(b) {
+        bytes_reader_reset(&r, doc);
+        JsonDecoder *d = json_new_decoder(a, bytes_reader_as_io_reader(&r));
+        JbItems items = {0};
+        Error err = json_decoder_decode(d, BURROW_ANY(TYPE_OF(JbItems), &items));
+        bench_keep_u64((uint64_t)BURROW_FAILED(err));
+        bench_keep(items.p);
+        json_decoder_free(d);
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+}
+
 void register_json_benchmarks(void);
 
 void register_json_benchmarks(void) {
@@ -160,4 +216,7 @@ void register_json_benchmarks(void) {
     BENCH_RUN(json_marshal_struct);
     BENCH_RUN(json_unmarshal_struct);
     BENCH_RUN(json_unmarshal_any);
+    BENCH_RUN(json_v1_marshal_struct);
+    BENCH_RUN(json_v1_unmarshal_struct);
+    BENCH_RUN(json_v1_decoder);
 }
