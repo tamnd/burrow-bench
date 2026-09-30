@@ -680,3 +680,4 @@ xml_encode_tokens                      XMLEncodeTokens
 # encoding/xml Marshal, the same feed as structs.
 xml_marshal                            XMLMarshal
 xml_encode_struct                      XMLEncodeStruct
+xml_unmarshal                          XMLUnmarshal

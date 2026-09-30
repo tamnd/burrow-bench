@@ -168,3 +168,14 @@ func BenchmarkXMLEncodeStruct(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkXMLUnmarshal(b *testing.B) {
+	doc := xmlDoc()
+	for b.Loop() {
+		var f feed
+		if err := xml.Unmarshal(doc, &f); err != nil {
+			b.Fatal(err)
+		}
+		sinkXMLInt = len(f.Entry)
+	}
+}

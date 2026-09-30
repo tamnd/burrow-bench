@@ -1,0 +1,25 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.17-3-g8206267
+bench      ae3faa6-dirty
+pinned     no
+statistic  min of 10 runs
+filter     xml
+date       2026-09-30 15:08:32Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+xml_raw_tokens                605730.52      98%    434608.00      13%     1.39x
+xml_tokens                    655244.12      64%    520207.00      10%     1.26x
+xml_encode_tokens             130557.76     108%    149792.00       2%     0.87x
+xml_marshal                   137353.30      54%    193543.00      12%     0.71x
+xml_encode_struct             150523.80      38%    176724.00      16%     0.85x
+xml_unmarshal                 727901.53     116%    747847.00       8%     0.97x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

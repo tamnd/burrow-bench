@@ -11,7 +11,8 @@
  *
  * xml_marshal writes a struct holding the same 100 entries with Marshal, and
  * xml_encode_struct writes it through an Encoder to a discard writer, so the
- * second row leaves out the growing of the output buffer.
+ * second row leaves out the growing of the output buffer. xml_unmarshal reads
+ * the document back into those structs.
  *
  * Copyright 2026 The burrow Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style licence that can be found
@@ -29,6 +30,7 @@
 #include "burrow/slice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define XB_N 100
 
@@ -208,6 +210,31 @@ BENCH(xml_encode_struct) {
     }
 }
 
+/* The document read back into the structs. Everything Unmarshal stores comes
+ * from an arena that is emptied each round, where Go's collector frees it. */
+BENCH(xml_unmarshal) {
+    build_doc();
+    Arena ar;
+    arena_init(&ar, heap_allocator(), 0);
+    /* Once outside the loop, to be sure it reads what Go's does. */
+    Feed check = {0};
+    if (BURROW_FAILED(xml_unmarshal(arena_allocator(&ar), doc,
+                                    BURROW_ANY(TYPE_OF(Feed), &check))) ||
+        check.Entry.len != XB_N ||
+        !str_eq(((Entry *)check.Entry.p)[XB_N - 1].Summary,
+                BURROW_S("Green tea, loose leaf, 149 grams.")) ||
+        ((Entry *)check.Entry.p)[XB_N - 1].Thumbnail.Width != 120)
+        abort();
+    arena_reset(&ar);
+    BENCH_LOOP(b) {
+        Feed f = {0};
+        Error err = xml_unmarshal(arena_allocator(&ar), doc, BURROW_ANY(TYPE_OF(Feed), &f));
+        bench_keep_u64((uint64_t)f.Entry.len + (uint64_t)BURROW_FAILED(err));
+        arena_reset(&ar);
+    }
+    arena_free(&ar);
+}
+
 void register_xml_benchmarks(void);
 
 void register_xml_benchmarks(void) {
@@ -216,4 +243,5 @@ void register_xml_benchmarks(void) {
     BENCH_RUN(xml_encode_tokens);
     BENCH_RUN(xml_marshal);
     BENCH_RUN(xml_encode_struct);
+    BENCH_RUN(xml_unmarshal);
 }
