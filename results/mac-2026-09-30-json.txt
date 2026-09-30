@@ -1,0 +1,25 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.14
+bench      f6f5076-dirty
+pinned     no
+statistic  min of 9 runs
+filter     json
+date       2026-09-30 04:34:31Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+json_valid                     26237.08     144%     41468.00     113%     0.63x
+json_compact                   35629.69     130%     34535.00     244%     1.03x
+json_read_tokens               64986.48     202%     54167.00      62%     1.20x
+json_marshal_struct            73439.81      61%     83744.00      30%     0.88x
+json_unmarshal_struct         132449.01     478%    146598.00      77%     0.90x
+json_unmarshal_any            162787.42     157%    228464.00     629%     0.71x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

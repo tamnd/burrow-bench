@@ -661,3 +661,11 @@ big_float_quo_1000                       BigFloatQuo1000
 big_float_sqrt_1000                      BigFloatSqrt1000
 big_float_text_1000                      BigFloatText1000
 big_float_set_string                     BigFloatSetString
+
+# encoding/json/jsontext and encoding/json/v2, on the same 100 item document.
+json_valid                             JSONValid
+json_compact                           JSONCompact
+json_read_tokens                       JSONReadTokens
+json_marshal_struct                    JSONMarshalStruct
+json_unmarshal_struct                  JSONUnmarshalStruct
+json_unmarshal_any                     JSONUnmarshalAny
