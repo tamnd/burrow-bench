@@ -672,3 +672,8 @@ json_unmarshal_any                     JSONUnmarshalAny
 json_v1_marshal_struct                 JSONV1MarshalStruct
 json_v1_unmarshal_struct               JSONV1UnmarshalStruct
 json_v1_decoder                        JSONV1Decoder
+
+# encoding/xml, the token layer, on the same feed of 100 entries.
+xml_raw_tokens                         XMLRawTokens
+xml_tokens                             XMLTokens
+xml_encode_tokens                      XMLEncodeTokens
