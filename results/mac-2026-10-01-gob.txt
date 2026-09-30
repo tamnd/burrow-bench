@@ -1,0 +1,22 @@
+machine    USERnoMacBook-Air.local
+os         Darwin arm64
+cpu        Apple M4
+compiler   Apple clang version 17.0.0 (clang-1700.6.3.2)
+burrow     v0.1.18-7-ga8d752a
+bench      5a2303c-dirty
+pinned     no
+statistic  min of 20 runs
+filter     gob
+date       2026-09-30 18:12:34Z
+go         go1.27.1
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+gob_encode                      7053.17     157%     12360.00     246%     0.57x
+gob_encode_again                6511.30     132%      8077.00      70%     0.81x
+gob_decode                     11096.07     156%     39932.00      58%     0.28x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.
