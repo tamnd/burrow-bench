@@ -686,3 +686,7 @@ xml_unmarshal                          XMLUnmarshal
 gob_encode                             GobEncode
 gob_encode_again                       GobEncodeAgain
 gob_decode                             GobDecode
+
+# encoding/asn1, on the same list of 100 records.
+asn1_marshal                           Asn1Marshal
+asn1_unmarshal                         Asn1Unmarshal
