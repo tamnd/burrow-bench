@@ -1,0 +1,21 @@
+machine    vmi3391933
+os         Linux x86_64
+cpu        AMD EPYC Processor (with IBPB)
+compiler   cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+burrow     v0.2.5
+bench      0743815-dirty
+pinned     cpu 5 with taskset
+statistic  min of 15 runs
+filter     template
+date       2026-10-14 14:25:50Z
+go         go1.26.5
+
+benchmark                     burrow ns   spread        go ns   spread    ratio
+-------------------------- ------------ -------- ------------ -------- --------
+template_parse_large        24724816.16      74%  41632912.00      50%     0.59x
+template_execute_range        166971.75      89%    179026.00     108%     0.93x
+
+Minimum of the runs, not the median, so these survive a busy machine
+better than the spread column next to them suggests. A spread in the
+hundreds still means most of the runs were interrupted, and a minimum
+taken out of runs that were all interrupted is not a measurement.

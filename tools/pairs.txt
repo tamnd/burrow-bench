@@ -690,3 +690,7 @@ gob_decode                             GobDecode
 # encoding/asn1, on the same list of 100 records.
 asn1_marshal                           Asn1Marshal
 asn1_unmarshal                         Asn1Unmarshal
+
+# text/template, on Go's BenchmarkParseLarge text and a range over 100 records.
+template_parse_large                   TemplateParseLarge
+template_execute_range                 TemplateExecuteRange
